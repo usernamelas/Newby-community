@@ -1,2 +1,75 @@
+/### .gitignore
+```gitignore
+# Android
+*.iml
+.gradle
+/local.properties
+/.idea/
+.DS_Store
 /build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Keystore (security)
+*.keystore
+*.jks
+release.keystore
+release.jks
+
+# Signing configs (don't commit passwords)
+keystore.properties
+signing.properties
+
+# Generated files
+bin/
+gen/
+out/
+release/
+
+# Gradle
+.gradle/
+build/
+gradle-app.setting
+!gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# NDK
+obj/
+.externalNativeBuild/
+
+# ProGuard
+proguard/
+mapping.txt
+seeds.txt
+usage.txt
+
+# APK outputs (don't commit built APKs)
+*.apk
+*.aab
+*.aar
+
+# Test results
+/test-results/
+/test-reports/
+```
 
