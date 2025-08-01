@@ -1,3 +1,7 @@
+# ================================
+# .github/workflows/build.yml
+# ================================
+
 name: 🎱 Pool Assistant Build
 
 # CONTROLLED TRIGGER - Only builds when:
@@ -461,3 +465,4 @@ EOF
           echo "❌ Build failed"
           exit 1
         fi
+

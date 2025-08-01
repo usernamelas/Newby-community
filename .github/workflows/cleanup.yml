@@ -1,18 +1,45 @@
----
 name: 🧹 Cleanup Old Artifacts
 
 on:
   schedule:
     - cron: '0 2 * * 0'  # Every Sunday at 2 AM UTC
   workflow_dispatch:
+    inputs:
+      cleanup_age:
+        description: 'Delete artifacts older than (days)'
+        required: true
+        default: '30'
+        type: string
+      
+      keep_recent:
+        description: 'Keep most recent N artifacts'
+        required: true
+        default: '5'
+        type: string
 
 jobs:
   cleanup:
     runs-on: ubuntu-latest
+    
     steps:
     - name: Delete old artifacts
       uses: c-hive/gha-remove-artifacts@v1
       with:
-        age: '30 days'
+        age: '${{ github.event.inputs.cleanup_age || "30" }} days'
         skip-tags: true
-        skip-recent: 5
+        skip-recent: ${{ github.event.inputs.keep_recent || 5 }}
+    
+    - name: Clean up old releases (keep last 10)
+      uses: dev-drprasad/delete-older-releases@v0.3.2
+      with:
+        keep_latest: 10
+        delete_tags: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Cleanup summary
+      run: |
+        echo "🧹 Cleanup completed"
+        echo "- Removed artifacts older than ${{ github.event.inputs.cleanup_age || 30 }} days"
+        echo "- Kept ${{ github.event.inputs.keep_recent || 5 }} most recent artifacts"
+        echo "- Kept 10 most recent releases"

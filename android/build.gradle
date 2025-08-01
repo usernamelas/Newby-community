@@ -49,35 +49,65 @@ android {
         debug {
             debuggable true
             minifyEnabled false
+            shrinkResources false
             applicationIdSuffix ".debug"
             versionNameSuffix "-debug"
             
             buildConfigField "boolean", "DEBUG_MODE", "true"
-            
-            // Debug ProGuard (optional)
-            // proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules-debug.pro'
+            buildConfigField "boolean", "OBFUSCATED", "false"
+            buildConfigField "String", "BUILD_TYPE_NAME", "\"Debug\""
         }
         
+        // PROTECTED RELEASE - Full R8 obfuscation
         release {
             debuggable false
             minifyEnabled true
             shrinkResources true
             signingConfig signingConfigs.release
             
-            // Advanced obfuscation
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 
+            // Aggressive R8 obfuscation
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
                          'proguard-rules.pro',
-                         'proguard-stealth.pro'
+                         'r8-stealth.pro'
             
             buildConfigField "boolean", "DEBUG_MODE", "false"
+            buildConfigField "boolean", "OBFUSCATED", "true"
+            buildConfigField "String", "BUILD_TYPE_NAME", "\"Release-Protected\""
         }
         
-        // Beta build type
+        // UNPROTECTED RELEASE - No obfuscation for learning/debugging
+        releaseOpen {
+            debuggable false
+            minifyEnabled false
+            shrinkResources false
+            signingConfig signingConfigs.release
+            applicationIdSuffix ".open"
+            versionNameSuffix "-open"
+            
+            // No obfuscation, but remove debug logs
+            proguardFiles 'proguard-clean-only.pro'
+            
+            buildConfigField "boolean", "DEBUG_MODE", "false"
+            buildConfigField "boolean", "OBFUSCATED", "false" 
+            buildConfigField "String", "BUILD_TYPE_NAME", "\"Release-Open\""
+        }
+        
+        // BETA - Lightly obfuscated for testing
         beta {
-            initWith release
+            debuggable true
+            minifyEnabled true
+            shrinkResources false
+            signingConfig signingConfigs.release
             applicationIdSuffix ".beta"
             versionNameSuffix "-beta"
-            debuggable true
+            
+            // Light obfuscation for testing
+            proguardFiles getDefaultProguardFile('proguard-android.txt'),
+                         'proguard-rules.pro'
+                         
+            buildConfigField "boolean", "DEBUG_MODE", "true"
+            buildConfigField "boolean", "OBFUSCATED", "true"
+            buildConfigField "String", "BUILD_TYPE_NAME", "\"Beta\""
         }
     }
     
@@ -89,7 +119,7 @@ android {
             versionNameSuffix "-standard"
             
             buildConfigField "boolean", "ROOT_FEATURES", "false"
-            buildConfigField "boolean", "MAGISK_SUPPORT", "false"
+            buildConfigField "boolean", "LSPOSED_SUPPORT", "false"
         }
         
         pro {
@@ -98,7 +128,7 @@ android {
             versionNameSuffix "-pro"
             
             buildConfigField "boolean", "ROOT_FEATURES", "true"
-            buildConfigField "boolean", "MAGISK_SUPPORT", "true"
+            buildConfigField "boolean", "LSPOSED_SUPPORT", "true"
         }
     }
     
@@ -137,15 +167,35 @@ android {
         disable 'MissingTranslation', 'ExtraTranslation'
     }
     
-    // Native build (optional)
-    /*
-    externalNativeBuild {
-        cmake {
-            path file('src/main/cpp/CMakeLists.txt')
-            version '3.22.1'
+    // Custom APK naming
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            def appName = "PoolAssistant"
+            def flavor = variant.flavorName.capitalize()
+            def buildType = variant.buildType.name
+            def version = variant.versionName
+            def buildNumber = System.getenv("BUILD_NUMBER") ?: "local"
+            
+            // Map build type names for cleaner output
+            def buildTypeName = buildType
+            switch(buildType) {
+                case 'release':
+                    buildTypeName = 'Protected'
+                    break
+                case 'releaseOpen':
+                    buildTypeName = 'Open'
+                    break
+                case 'beta':
+                    buildTypeName = 'Beta'
+                    break
+                case 'debug':
+                    buildTypeName = 'Debug'
+                    break
+            }
+            
+            outputFileName = "${appName}-${flavor}-${buildTypeName}-v${version}-build${buildNumber}.apk"
         }
     }
-    */
 }
 
 dependencies {
@@ -188,20 +238,22 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.10.1'
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2'
     
-    // Root utilities (conditional)
+    // Root utilities (pro flavor only)
     proImplementation 'eu.chainfire:libsuperuser:1.1.0.+'
     proImplementation 'com.github.topjohnwu.libsu:core:5.0.4'
     proImplementation 'com.github.topjohnwu.libsu:service:5.0.4'
+    
+    // LSPosed API (pro flavor only)
+    proCompileOnly 'de.robv.android.xposed:api:82'
+    proCompileOnly 'de.robv.android.xposed:api:82:sources'
+    proCompileOnly 'io.github.libxposed:api:100'
+    proCompileOnly 'io.github.libxposed:service:100'
     
     // Image processing (optional)
     implementation 'com.github.bumptech.glide:glide:4.16.0'
     
     // Animations
     implementation 'com.airbnb.android:lottie:6.3.0'
-    
-    // Crash reporting (optional)
-    // implementation 'com.google.firebase:firebase-crashlytics-ktx'
-    // implementation 'com.google.firebase:firebase-analytics-ktx'
     
     // Debugging
     debugImplementation "androidx.compose.ui:ui-tooling:$compose_version"
