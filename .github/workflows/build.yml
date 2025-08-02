@@ -60,10 +60,7 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
       with:
-        packages: |
-          platforms;android-${{ env.ANDROID_API_LEVEL }}
-          build-tools;${{ env.ANDROID_BUILD_TOOLS }}
-          platform-tools
+        packages: "platforms;android-${{ env.ANDROID_API_LEVEL }} build-tools;${{ env.ANDROID_BUILD_TOOLS }} platform-tools"
         accept-android-sdk-licenses: true
     
     - name: Cache Gradle dependencies
