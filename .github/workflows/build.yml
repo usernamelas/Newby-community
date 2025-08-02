@@ -40,7 +40,7 @@ jobs:
       run: ls -R android/app/build/outputs/apk/
 
     - name: Upload Debug APK
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: pool-assistant-debug
         path: android/app/build/outputs/apk/debug/*.apk
@@ -52,13 +52,13 @@ jobs:
       run: ls -R android/app/build/outputs/apk/
 
     - name: Upload Release APK
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: pool-assistant-release
         path: android/app/build/outputs/apk/release/*.apk
 
     - name: Upload Mapping Files
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: mapping-files
         path: android/app/build/outputs/mapping/release/mapping.txt
