@@ -132,49 +132,29 @@ jobs:
           echo "RELEASE_KEY_PASSWORD=$KEY_PASSWORD" >> gradle.properties
         fi
     
-    - name: Debug build.gradle Configuration  
+    - name: Verify Build Configuration
       run: |
-        echo "=== Checking build.gradle files ==="
-        find . -name "build.gradle*" -type f
+        echo "=== Environment Check ==="
+        echo "Java Version: $(java -version)"
+        echo "Gradle Version: $(./gradlew --version | head -3)"
         echo ""
-        echo "=== App build.gradle content (productFlavors section) ==="
-        if [ -f app/build.gradle ]; then
-          echo "--- Product Flavors ---"
-          grep -A 20 "productFlavors" app/build.gradle || echo "No productFlavors found"
-          echo ""
-          echo "--- Build Types ---"  
-          grep -A 10 "buildTypes" app/build.gradle || echo "No buildTypes found"
-          echo ""
-          echo "--- Application ID ---"
-          grep "applicationId" app/build.gradle || echo "No applicationId found"
-        else
-          echo "app/build.gradle not found!"
-        fi
-        echo ""
-        echo "=== Available Gradle Tasks ==="
-        ./gradlew tasks | grep -i assemble
-
-    - name: Build APK (Dynamic)
+        echo "=== Available Build Variants ==="
+        ./gradlew tasks | grep -E "(assemble|build)" | head -10
+    
+    - name: Build APK
       run: |
-        echo "=== Detecting Available Build Tasks ==="
-        AVAILABLE_TASKS=$(./gradlew tasks | grep -i assemble | head -5)
-        echo "Available assemble tasks:"
-        echo "$AVAILABLE_TASKS"
+        BUILD_TYPE="${{ steps.config.outputs.build_type }}"
+        FLAVOR="${{ steps.config.outputs.flavor }}"
         
-        # Try common build tasks
-        if ./gradlew tasks | grep -q "assembleDebug"; then
-          echo "Building with assembleDebug..."
-          ./gradlew assembleDebug --stacktrace
-        elif ./gradlew tasks | grep -q "assembleRelease"; then
-          echo "Building with assembleRelease..."  
-          ./gradlew assembleRelease --stacktrace
-        elif ./gradlew tasks | grep -q "build"; then
-          echo "Using generic build task..."
-          ./gradlew build --stacktrace
-        else
-          echo "No suitable build task found!"
-          exit 1
-        fi
+        # Capitalize for Gradle task
+        FLAVOR_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOR:0:1})${FLAVOR:1}"
+        BUILD_TYPE_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${BUILD_TYPE:0:1})${BUILD_TYPE:1}"
+        
+        echo "=== Building $FLAVOR_CAP $BUILD_TYPE_CAP APK ==="
+        echo "Task: assemble${FLAVOR_CAP}${BUILD_TYPE_CAP}"
+        
+        # Build with proper task name
+        ./gradlew assemble${FLAVOR_CAP}${BUILD_TYPE_CAP} --stacktrace
     
     - name: Run tests
       if: false
