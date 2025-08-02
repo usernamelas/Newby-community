@@ -1,320 +1,39 @@
-name: 🎱 Pool Assistant Build
+name: Build APK Minimal
 
 on:
-  workflow_dispatch:
-    inputs:
-      build_type:
-        description: 'Build type'
-        required: true
-        default: 'debug'
-        type: choice
-        options:
-        - debug
-        - beta
-        - release
-      flavor:
-        description: 'App flavor'
-        required: true
-        default: 'standard'
-        type: choice
-        options:
-        - standard
-        - pro
-      create_release:
-        description: 'Create GitHub release'
-        required: false
-        default: false
-        type: boolean
-
   push:
-    branches: 
-      - 'termux-builds'
-      - 'release/*'
-    tags:
-      - 'v*'
-
-  pull_request:
-    branches: [ main, develop ]
-
-env:
-  JAVA_VERSION: '17'
-  ANDROID_API_LEVEL: '34'
-  ANDROID_BUILD_TOOLS: '34.0.0'
-  GRADLE_VERSION: '8.4'
-  APP_NAME: 'PoolAssistant'
-  PACKAGE_NAME: 'com.victory.poolassistant'
+    branches:
+      - main
+      - termux-builds
+  workflow_dispatch:
 
 jobs:
-  pre_build:
-    name: 🔍 Pre-build Checks
-    runs-on: ubuntu-latest
-    outputs:
-      should_build: ${{ steps.check.outputs.should_build }}
-      build_type: ${{ steps.check.outputs.build_type }}
-      flavor: ${{ steps.check.outputs.flavor }}
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-
-    - name: Check build conditions
-      id: check
-      run: |
-        echo "Checking build conditions..."
-
-        BUILD_TYPE="debug"
-        FLAVOR="standard"
-        SHOULD_BUILD="true"
-
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          BUILD_TYPE="${{ github.event.inputs.build_type }}"
-          FLAVOR="${{ github.event.inputs.flavor }}"
-        elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-          BUILD_TYPE="release"
-          FLAVOR="pro"
-        elif [[ "${{ github.ref }}" == refs/heads/release/* ]]; then
-          BUILD_TYPE="beta"
-          FLAVOR="pro"
-        elif [ "${{ github.ref }}" = "refs/heads/termux-builds" ]; then
-          BUILD_TYPE="debug"
-          FLAVOR="standard"
-        else
-          BUILD_TYPE="debug"
-          FLAVOR="standard"
-        fi
-
-        if git diff --name-only HEAD~1 | grep -E '\.(md|txt|yml)$' && ! git diff --name-only HEAD~1 | grep -E '\.(java|kt|xml|gradle)$'; then
-          echo "Only documentation files changed, skipping build"
-          SHOULD_BUILD="false"
-        fi
-
-        echo "should_build=$SHOULD_BUILD" >> $GITHUB_OUTPUT
-        echo "build_type=$BUILD_TYPE" >> $GITHUB_OUTPUT
-        echo "flavor=$FLAVOR" >> $GITHUB_OUTPUT
-
   build:
-    name: 🏗️ Build APK
     runs-on: ubuntu-latest
-    needs: pre_build
-    if: needs.pre_build.outputs.should_build == 'true'
-    strategy:
-      matrix:
-        include:
-          - build_type: ${{ needs.pre_build.outputs.build_type }}
-            flavor: ${{ needs.pre_build.outputs.flavor }}
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        lfs: true
-    - name: Set up JDK ${{ env.JAVA_VERSION }}
-      uses: actions/setup-java@v4
-      with:
-        java-version: ${{ env.JAVA_VERSION }}
-        distribution: 'temurin'
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-      with:
-        api-level: ${{ env.ANDROID_API_LEVEL }}
-        build-tools: ${{ env.ANDROID_BUILD_TOOLS }}
-        ndk-version: '25.2.9519653'
-    - name: Cache Gradle dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-          ~/.android/build-cache
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
-    - name: Make gradlew executable
-      run: chmod +x gradlew
-    - name: Create version info
-      run: |
-        BUILD_TIME=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-        GIT_COMMIT=$(git rev-parse --short HEAD)
-        BUILD_NUMBER=${{ github.run_number }}
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-        echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_ENV
-        echo "GIT_COMMIT=$GIT_COMMIT" >> $GITHUB_ENV
-        echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
-        sed -i "s/versionCode .*/versionCode $BUILD_NUMBER/" app/build.gradle
-    - name: Setup keystore
-      env:
-        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-      run: |
-        if [ -n "$KEYSTORE_BASE64" ]; then
-          echo "$KEYSTORE_BASE64" | base64 -d > app/release.keystore
-          echo "RELEASE_STORE_FILE=release.keystore" >> gradle.properties
-          echo "RELEASE_STORE_PASSWORD=$KEYSTORE_PASSWORD" >> gradle.properties
-          echo "RELEASE_KEY_ALIAS=$KEY_ALIAS" >> gradle.properties
-          echo "RELEASE_KEY_PASSWORD=$KEY_PASSWORD" >> gradle.properties
-        else
-          echo "No keystore found, using debug signing"
-        fi
-    - name: Build APK
-      run: |
-        BUILD_TYPE="${{ matrix.build_type }}"
-        FLAVOR="${{ matrix.flavor }}"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 34
+          build-tools: 34.0.0
 
-        echo "Building $FLAVOR $BUILD_TYPE APK..."
+      - name: Make gradlew executable
+        run: chmod +x gradlew
 
-        FLAVOR_CAP="${FLAVOR^}"
-        BUILD_TYPE_CAP="${BUILD_TYPE^}"
+      - name: Build APK (debug, standard)
+        run: ./gradlew assembleStandardDebug
 
-        if [ "$BUILD_TYPE" = "release" ]; then
-          ./gradlew assemble${FLAVOR_CAP}Release --stacktrace
-        else
-          ./gradlew assemble${FLAVOR_CAP}${BUILD_TYPE_CAP} --stacktrace
-        fi
-    - name: Run tests
-      if: matrix.build_type != 'release'
-      run: |
-        FLAVOR_CAP="${{ matrix.flavor^ }}"
-        BUILD_TYPE_CAP="${{ matrix.build_type^ }}"
-        ./gradlew test${FLAVOR_CAP}${BUILD_TYPE_CAP}UnitTest --continue
-    - name: Rename APK files
-      run: |
-        BUILD_TYPE="${{ matrix.build_type }}"
-        FLAVOR="${{ matrix.flavor }}"
-        VERSION_NAME=$(grep "versionName" app/build.gradle | sed 's/.*"\(.*\)".*/\1/')
-        BUILD_NUMBER="${{ github.run_number }}"
-
-        APK_PATH="app/build/outputs/apk/$FLAVOR/$BUILD_TYPE"
-
-        if [ -f "$APK_PATH/app-$FLAVOR-$BUILD_TYPE.apk" ]; then
-          OLD_NAME="app-$FLAVOR-$BUILD_TYPE.apk"
-          NEW_NAME="PoolAssistant-$FLAVOR-$BUILD_TYPE-v$VERSION_NAME-build$BUILD_NUMBER.apk"
-
-          mv "$APK_PATH/$OLD_NAME" "$APK_PATH/$NEW_NAME"
-          echo "APK_FILE_PATH=$APK_PATH/$NEW_NAME" >> $GITHUB_ENV
-          echo "APK_FILE_NAME=$NEW_NAME" >> $GITHUB_ENV
-        fi
-    - name: Generate APK info
-      run: |
-        APK_FILE="${{ env.APK_FILE_PATH }}"
-
-        if [ -f "$APK_FILE" ]; then
-          APK_SIZE=$(du -h "$APK_FILE" | cut -f1)
-
-          cat > apk_info.txt << EOF
-📱 Pool Assistant Build Info
-=============================
-
-🏷️  Build Details:
-   • Flavor: ${{ matrix.flavor }}
-   • Build Type: ${{ matrix.build_type }}
-   • Version: $(grep "versionName" app/build.gradle | sed 's/.*"\(.*\)".*/\1/')
-   • Build Number: ${{ github.run_number }}
-   • Commit: ${{ env.GIT_COMMIT }}
-   • Build Time: ${{ env.BUILD_TIME }}
-
-📦 APK Details:
-   • File: ${{ env.APK_FILE_NAME }}
-   • Size: $APK_SIZE
-   • Min SDK: 24 (Android 7.0)
-   • Target SDK: 34 (Android 14)
-
-🔧 Features:
-   • Root Support: ${{ matrix.flavor == 'pro' && 'Yes' || 'No' }}
-   • libsu Ready: ${{ matrix.flavor == 'pro' && 'Yes' || 'No' }}
-   • Stealth Mode: ${{ matrix.build_type == 'release' && 'Enabled' || 'Disabled' }}
-   • Debug Mode: ${{ matrix.build_type == 'debug' && 'Yes' || 'No' }}
-
-EOF
-
-          echo "APK_SIZE=$APK_SIZE" >> $GITHUB_ENV
-        fi
-    - name: Security scan
-      if: matrix.build_type == 'release'
-      run: |
-        echo "Running security checks..."
-
-        if strings "${{ env.APK_FILE_PATH }}" | grep -i "debug\|test" > /dev/null; then
-          echo "⚠️ Warning: Debug symbols found in release APK"
-        else
-          echo "✅ No debug symbols found"
-        fi
-
-        if jarsigner -verify "${{ env.APK_FILE_PATH }}"; then
-          echo "✅ APK signature verified"
-        else
-          echo "❌ APK signature verification failed"
-          exit 1
-        fi
-    - name: Upload APK artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.APK_FILE_NAME }}
-        path: ${{ env.APK_FILE_PATH }}
-        retention-days: 30
-    - name: Upload build info
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-info-${{ matrix.flavor }}-${{ matrix.build_type }}
-        path: apk_info.txt
-        retention-days: 30
-    - name: Upload mapping files (Release only)
-      if: matrix.build_type == 'release'
-      uses: actions/upload-artifact@v4
-      with:
-        name: mapping-files-${{ matrix.flavor }}
-        path: |
-          app/build/outputs/mapping/*/mapping.txt
-          app/build/outputs/mapping/*/seeds.txt
-          app/build/outputs/mapping/*/usage.txt
-        retention-days: 90
-    - name: Create Release
-      if: |
-        (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true') ||
-        (startsWith(github.ref, 'refs/tags/v') && matrix.build_type == 'release')
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ github.ref_name || format('v{0}-build{1}', github.run_number, github.run_number) }}
-        name: ${{ format('Pool Assistant {0} - Build {1}', matrix.flavor, github.run_number) }}
-        body_path: apk_info.txt
-        files: ${{ env.APK_FILE_PATH }}
-        draft: false
-        prerelease: ${{ matrix.build_type != 'release' }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  notify:
-    name: 📢 Notify Build Result
-    runs-on: ubuntu-latest
-    needs: [pre_build, build]
-    if: always() && needs.pre_build.outputs.should_build == 'true'
-    steps:
-    - name: Send Telegram notification
-      if: secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != ''
-      uses: appleboy/telegram-action@v0.1.1
-      with:
-        to: ${{ secrets.TELEGRAM_CHAT_ID }}
-        token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-        format: markdown
-        message: |
-          🎱 *Pool Assistant Build Complete*
-
-          📋 *Build Details:*
-          • Flavor: `${{ needs.pre_build.outputs.flavor }}`
-          • Type: `${{ needs.pre_build.outputs.build_type }}`
-          • Status: ${{ needs.build.result == 'success' && '✅ Success' || '❌ Failed' }}
-          • Commit: `${{ github.sha }}`
-          • Branch: `${{ github.ref_name }}`
-
-          🔗 [Download APK](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
-    - name: Update build status
-      run: |
-        echo "Build completed with status: ${{ needs.build.result }}"
-        if [ "${{ needs.build.result }}" = "success" ]; then
-          echo "✅ Build successful"
-        else
-          echo "❌ Build failed"
-          exit 1
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-standard-debug
+          path: app/build/outputs/apk/standard/debug/*.apk
