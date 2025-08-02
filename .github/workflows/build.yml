@@ -201,7 +201,7 @@ jobs:
         
         # Generate build info file
         cat > build_info.txt << 'EOF'
-📱 Pool Assistant Build Info
+ Pool Assistant Build Info
 ============================
 
 🏷️ Build Details:
