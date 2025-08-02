@@ -42,6 +42,11 @@ jobs:
     name: 🏗️ Build APK
     runs-on: ubuntu-latest
     
+    # CRITICAL FIX: Set working directory to android folder
+    defaults:
+      run:
+        working-directory: android
+    
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -66,7 +71,7 @@ jobs:
         path: |
           ~/.gradle/caches
           ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+        key: ${{ runner.os }}-gradle-${{ hashFiles('android/**/*.gradle*') }}
     
     - name: Make gradlew executable
       run: chmod +x gradlew
@@ -122,8 +127,10 @@ jobs:
     - name: Run tests
       if: steps.config.outputs.build_type != 'release'
       run: |
-        FLAVOR_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${{ steps.config.outputs.flavor }}:0:1)${{ steps.config.outputs.flavor }}:1"
-        BUILD_TYPE_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${{ steps.config.outputs.build_type }}:0:1)${{ steps.config.outputs.build_type }}:1"
+        FLAVOR="${{ steps.config.outputs.flavor }}"
+        BUILD_TYPE="${{ steps.config.outputs.build_type }}"
+        FLAVOR_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOR:0:1})${FLAVOR:1}"
+        BUILD_TYPE_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${BUILD_TYPE:0:1})${BUILD_TYPE:1}"
         ./gradlew test${FLAVOR_CAP}${BUILD_TYPE_CAP}UnitTest --continue
     
     - name: Find and rename APK
@@ -156,13 +163,30 @@ jobs:
     
     - name: Generate build info
       run: |
+        FLAVOR="${{ steps.config.outputs.flavor }}"
+        BUILD_TYPE="${{ steps.config.outputs.build_type }}"
+        
+        # Determine feature flags
+        ROOT_SUPPORT="No"
+        LIBSU_INTEGRATION="No"
+        R8_OBFUSCATION="No"
+        
+        if [ "$FLAVOR" = "pro" ]; then
+          ROOT_SUPPORT="Yes"
+          LIBSU_INTEGRATION="Yes"
+        fi
+        
+        if [ "$BUILD_TYPE" = "release" ]; then
+          R8_OBFUSCATION="Yes"
+        fi
+        
         cat > build_info.txt << EOF
 📱 Pool Assistant Build Info
 ============================
 
 🏷️ Build Details:
-• Flavor: ${{ steps.config.outputs.flavor }}
-• Build Type: ${{ steps.config.outputs.build_type }}
+• Flavor: $FLAVOR
+• Build Type: $BUILD_TYPE
 • Version: $(grep "versionName" app/build.gradle | sed 's/.*"\(.*\)".*/\1/')
 • Build Number: ${{ github.run_number }}
 • Commit: $(git rev-parse --short HEAD)
@@ -175,9 +199,9 @@ jobs:
 • Target SDK: 34 (Android 14)
 
 🔧 Features:
-• Root Support: ${{ steps.config.outputs.flavor == 'pro' && 'Yes' || 'No' }}
-• libsu Integration: ${{ steps.config.outputs.flavor == 'pro' && 'Yes' || 'No' }}
-• R8 Obfuscation: ${{ steps.config.outputs.build_type == 'release' && 'Yes' || 'No' }}
+• Root Support: $ROOT_SUPPORT
+• libsu Integration: $LIBSU_INTEGRATION
+• R8 Obfuscation: $R8_OBFUSCATION
 EOF
     
     - name: Upload APK
