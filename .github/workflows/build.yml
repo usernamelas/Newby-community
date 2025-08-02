@@ -39,20 +39,37 @@ jobs:
     - name: Build Release APK
       run: ./gradlew assembleRelease
 
+    - name: List build outputs (Debug)
+      run: |
+        echo "=== Debug build outputs ==="
+        find . -name "*.apk" -type f
+        echo "=== APK directory structure ==="
+        ls -la android/app/build/outputs/ || echo "outputs folder not found"
+        ls -la android/app/build/outputs/apk/ || echo "apk folder not found"
+
     - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       with:
         name: pool-assistant-debug
-        path: android/app/build/outputs/apk/**/*.apk
+        path: |
+          android/app/build/outputs/apk/debug/*.apk
+          android/app/build/outputs/apk/standardDebug/*.apk
+          android/app/build/outputs/apk/proDebug/*.apk
+          android/app/build/outputs/apk/**/*debug*.apk
 
     - name: Upload Release APK
       uses: actions/upload-artifact@v4
       with:
         name: pool-assistant-release
-        path: android/app/build/outputs/apk/**/*.apk
+        path: |
+          android/app/build/outputs/apk/release/*.apk
+          android/app/build/outputs/apk/standardRelease/*.apk
+          android/app/build/outputs/apk/proRelease/*.apk
+          android/app/build/outputs/apk/**/*release*.apk
 
-    - name: Upload Mapping Files
+    - name: Upload Mapping Files (if exists)
       uses: actions/upload-artifact@v4
+      if: hashFiles('android/app/build/outputs/mapping/release/mapping.txt') != ''
       with:
         name: mapping-files
         path: android/app/build/outputs/mapping/release/mapping.txt
