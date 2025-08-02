@@ -17,4 +17,7 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Pool Assistant Pro"
+
+// Sesuaikan dengan struktur folder Anda
 include ':app'
+project(':app').projectDir = file('android/app')
