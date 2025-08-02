@@ -56,3 +56,5 @@ jobs:
       with:
         name: mapping-files
         path: app/build/outputs/mapping/release/mapping.txt
+
+        
