@@ -309,38 +309,4 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  notify:
-    name: 📢 Notify Build Result
-    runs-on: ubuntu-latest
-    needs: [pre_build, build]
-    if: always() && needs.pre_build.outputs.should_build == 'true'
-    
-    steps:
-    - name: Send Telegram notification
-      if: secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != ''
-      uses: appleboy/telegram-action@v0.1.1
-      with:
-        to: ${{ secrets.TELEGRAM_CHAT_ID }}
-        token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-        format: markdown
-        message: |
-          🎱 *Pool Assistant Build Complete*
-          
-          📋 *Build Details:*
-          • Flavor: `${{ needs.pre_build.outputs.flavor }}`
-          • Type: `${{ needs.pre_build.outputs.build_type }}`
-          • Status: ${{ needs.build.result == 'success' && '✅ Success' || '❌ Failed' }}
-          • Commit: `${{ github.sha }}`
-          • Branch: `${{ github.ref_name }}`
-          
-          🔗 [Download APK](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
-    
-    - name: Update build status
-      run: |
-        echo "Build completed with status: ${{ needs.build.result }}"
-        if [ "${{ needs.build.result }}" = "success" ]; then
-          echo "✅ Build successful"
-        else
-          echo "❌ Build failed"
-          exit 1
-        fi
+  
