@@ -20,20 +20,17 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          api-level: 34
-          build-tools: 34.0.0
+      # Android SDK sudah otomatis tersedia di ubuntu-latest, step ini bisa di-skip
+      # Jika build gagal karena SDK, baru tambahkan setup SDK yang benar
 
       - name: Make gradlew executable
         run: chmod +x gradlew
 
-      - name: Build APK (debug, standard)
-        run: ./gradlew assembleStandardDebug
+      - name: Build APK (debug)
+        run: ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-standard-debug
-          path: app/build/outputs/apk/standard/debug/*.apk
+          name: app-debug
+          path: app/build/outputs/apk/debug/*.apk
