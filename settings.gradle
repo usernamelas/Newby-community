@@ -19,4 +19,5 @@ dependencyResolutionManagement {
 rootProject.name = "Pool Assistant Pro"
 
 include ':app'
-project(':app').projectDir = file('android/app')
+project(':app').projectDir = file('app')
+
