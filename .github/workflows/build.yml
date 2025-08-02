@@ -1,274 +1,157 @@
-name: 🎱 Pool Assistant Build
+name: 🌱 Pool Assistant Build
 
-on:
-  workflow_dispatch:
-    inputs:
-      build_type:
-        description: 'Build type'
-        required: true
-        default: 'debug'
-        type: choice
-        options:
-        - debug
-        - beta
-        - release
-      
-      flavor:
-        description: 'App flavor'
-        required: true
-        default: 'standard'
-        type: choice
-        options:
-        - standard
-        - pro
+on: workflow_dispatch: inputs: build_type: description: 'Build type' required: true default: 'debug' type: choice options: - debug - beta - release flavor: description: 'App flavor' required: true default: 'standard' type: choice options: - standard - pro push: branches: - 'termux-builds' - 'release/' tags: - 'v' pull_request: branches: [ main, develop ]
 
-  push:
-    branches: 
-      - 'termux-builds'
-      - 'release/*'
-    tags:
-      - 'v*'
+env: JAVA_VERSION: '17' ANDROID_API_LEVEL: '34' ANDROID_BUILD_TOOLS: '34.0.0'
 
-  pull_request:
-    branches: [ main, develop ]
+jobs: build: name: 🛠️ Build APK runs-on: ubuntu-latest defaults: run: working-directory: android steps: - name: Checkout repository uses: actions/checkout@v4 with: fetch-depth: 0
 
-env:
-  JAVA_VERSION: '17'
-  ANDROID_API_LEVEL: '34'
-  ANDROID_BUILD_TOOLS: '34.0.0'
+- name: Set up JDK ${{ env.JAVA_VERSION }}
+  uses: actions/setup-java@v4
+  with:
+    java-version: ${{ env.JAVA_VERSION }}
+    distribution: 'temurin'
 
-jobs:
-  build:
-    name: 🏗️ Build APK
-    runs-on: ubuntu-latest
-    
-    # CRITICAL FIX: Set working directory to android folder
-    defaults:
-      run:
-        working-directory: android
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    
-    - name: Set up JDK ${{ env.JAVA_VERSION }}
-      uses: actions/setup-java@v4
-      with:
-        java-version: ${{ env.JAVA_VERSION }}
-        distribution: 'temurin'
-    
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-      with:
-        api-level: ${{ env.ANDROID_API_LEVEL }}
-        build-tools: ${{ env.ANDROID_BUILD_TOOLS }}
-    
-    - name: Cache Gradle dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('android/**/*.gradle*') }}
-    
-    - name: Make gradlew executable
-      run: chmod +x gradlew
-    
-    - name: Determine build configuration
-      id: config
-      run: |
-        BUILD_TYPE="debug"
-        FLAVOR="standard"
-        
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          BUILD_TYPE="${{ github.event.inputs.build_type }}"
-          FLAVOR="${{ github.event.inputs.flavor }}"
-        elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-          BUILD_TYPE="release"
-          FLAVOR="pro"
-        elif [[ "${{ github.ref }}" == refs/heads/release/* ]]; then
-          BUILD_TYPE="beta"
-          FLAVOR="pro"
-        fi
-        
-        echo "build_type=$BUILD_TYPE" >> $GITHUB_OUTPUT
-        echo "flavor=$FLAVOR" >> $GITHUB_OUTPUT
-        
-        echo "Selected build configuration: $FLAVOR $BUILD_TYPE"
-    
-    - name: Setup keystore
-      if: steps.config.outputs.build_type == 'release'
-      env:
-        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-      run: |
-        if [ -n "$KEYSTORE_BASE64" ]; then
-          echo "$KEYSTORE_BASE64" | base64 -d > app/release.keystore
-          echo "RELEASE_STORE_FILE=release.keystore" >> gradle.properties
-          echo "RELEASE_STORE_PASSWORD=$KEYSTORE_PASSWORD" >> gradle.properties
-          echo "RELEASE_KEY_ALIAS=$KEY_ALIAS" >> gradle.properties
-          echo "RELEASE_KEY_PASSWORD=$KEY_PASSWORD" >> gradle.properties
-          echo "Keystore configured successfully"
-        else
-          echo "No keystore secrets found, using debug keystore"
-        fi
-    
-    - name: Build APK
-      run: |
-        BUILD_TYPE="${{ steps.config.outputs.build_type }}"
-        FLAVOR="${{ steps.config.outputs.flavor }}"
-        
-        # Capitalize for Gradle task
-        FLAVOR_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOR:0:1})${FLAVOR:1}"
-        BUILD_TYPE_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${BUILD_TYPE:0:1})${BUILD_TYPE:1}"
-        
-        echo "Building $FLAVOR_CAP $BUILD_TYPE_CAP APK..."
-        ./gradlew assemble${FLAVOR_CAP}${BUILD_TYPE_CAP} --stacktrace --info
-    
-    - name: Run tests
-      if: steps.config.outputs.build_type != 'release'
-      run: |
-        FLAVOR="${{ steps.config.outputs.flavor }}"
-        BUILD_TYPE="${{ steps.config.outputs.build_type }}"
-        FLAVOR_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOR:0:1})${FLAVOR:1}"
-        BUILD_TYPE_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${BUILD_TYPE:0:1})${BUILD_TYPE:1}"
-        
-        echo "Running tests for $FLAVOR_CAP $BUILD_TYPE_CAP..."
-        ./gradlew test${FLAVOR_CAP}${BUILD_TYPE_CAP}UnitTest --continue
-    
-    - name: Find and rename APK
-      id: apk
-      run: |
-        BUILD_TYPE="${{ steps.config.outputs.build_type }}"
-        FLAVOR="${{ steps.config.outputs.flavor }}"
-        
-        # Find APK file
-        APK_PATH="app/build/outputs/apk/$FLAVOR/$BUILD_TYPE"
-        echo "Looking for APK in: $APK_PATH"
-        
-        APK_FILE=$(find $APK_PATH -name "*.apk" | head -1)
-        
-        if [ -f "$APK_FILE" ]; then
-          # Create new name
-          VERSION_NAME=$(grep "versionName" app/build.gradle | sed 's/.*"\(.*\)".*/\1/')
-          BUILD_NUMBER=${{ github.run_number }}
-          NEW_NAME="PoolAssistant-$FLAVOR-$BUILD_TYPE-v$VERSION_NAME-build$BUILD_NUMBER.apk"
-          
-          # Rename file
-          NEW_PATH="$APK_PATH/$NEW_NAME"
-          mv "$APK_FILE" "$NEW_PATH"
-          
-          echo "apk_path=$NEW_PATH" >> $GITHUB_OUTPUT
-          echo "apk_name=$NEW_NAME" >> $GITHUB_OUTPUT
-          
-          # Get file size
-          APK_SIZE=$(du -h "$NEW_PATH" | cut -f1)
-          echo "apk_size=$APK_SIZE" >> $GITHUB_OUTPUT
-          
-          echo "APK created successfully: $NEW_NAME ($APK_SIZE)"
-        else
-          echo "ERROR: APK file not found in $APK_PATH"
-          ls -la $APK_PATH || echo "Directory does not exist"
-          exit 1
-        fi
-    
-    - name: Generate build info
-      run: |
-        FLAVOR="${{ steps.config.outputs.flavor }}"
-        BUILD_TYPE="${{ steps.config.outputs.build_type }}"
-        
-        # Determine feature flags using proper shell logic
-        if [ "$FLAVOR" = "pro" ]; then
-          ROOT_SUPPORT="Yes"
-          LIBSU_INTEGRATION="Yes"
-        else
-          ROOT_SUPPORT="No"
-          LIBSU_INTEGRATION="No"
-        fi
-        
-        if [ "$BUILD_TYPE" = "release" ]; then
-          R8_OBFUSCATION="Yes"
-        else
-          R8_OBFUSCATION="No"
-        fi
-        
-        # Get version info
-        VERSION_NAME=$(grep "versionName" app/build.gradle | sed 's/.*"\(.*\)".*/\1/')
-        
-        # Generate build info file
-        cat > build_info.txt << 'EOF'
- Pool Assistant Build Info
+- name: Setup Android SDK
+  uses: android-actions/setup-android@v3
+  with:
+    api-level: ${{ env.ANDROID_API_LEVEL }}
+    build-tools: ${{ env.ANDROID_BUILD_TOOLS }}
 
+- name: Cache Gradle dependencies
+  uses: actions/cache@v4
+  with:
+    path: |
+      ~/.gradle/caches
+      ~/.gradle/wrapper
+    key: ${{ runner.os }}-gradle-${{ hashFiles('android/**/*.gradle*') }}
 
-🏷️ Build Details:
-• Flavor: FLAVOR_PLACEHOLDER
-• Build Type: BUILD_TYPE_PLACEHOLDER
-• Version: VERSION_PLACEHOLDER
-• Build Number: BUILD_NUMBER_PLACEHOLDER
-• Commit: COMMIT_PLACEHOLDER
-• Build Time: BUILD_TIME_PLACEHOLDER
+- name: Make gradlew executable
+  run: chmod +x gradlew
 
-📦 APK Details:
-• File: APK_NAME_PLACEHOLDER
-• Size: APK_SIZE_PLACEHOLDER
-• Min SDK: 24 (Android 7.0)
-• Target SDK: 34 (Android 14)
+- name: Determine build configuration
+  id: config
+  run: |
+    BUILD_TYPE="debug"
+    FLAVOR="standard"
+    if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+      BUILD_TYPE="${{ github.event.inputs.build_type }}"
+      FLAVOR="${{ github.event.inputs.flavor }}"
+    elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+      BUILD_TYPE="release"
+      FLAVOR="pro"
+    elif [[ "${{ github.ref }}" == refs/heads/release/* ]]; then
+      BUILD_TYPE="beta"
+      FLAVOR="pro"
+    fi
+    echo "build_type=$BUILD_TYPE" >> $GITHUB_OUTPUT
+    echo "flavor=$FLAVOR" >> $GITHUB_OUTPUT
 
-🔧 Features:
-• Root Support: ROOT_SUPPORT_PLACEHOLDER
-• libsu Integration: LIBSU_INTEGRATION_PLACEHOLDER
-• R8 Obfuscation: R8_OBFUSCATION_PLACEHOLDER
+- name: Setup keystore
+  if: steps.config.outputs.build_type == 'release'
+  env:
+    KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+    KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+    KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+    KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+  run: |
+    if [ -n "$KEYSTORE_BASE64" ]; then
+      echo "$KEYSTORE_BASE64" | base64 -d > app/release.keystore
+      echo "RELEASE_STORE_FILE=release.keystore" >> gradle.properties
+      echo "RELEASE_STORE_PASSWORD=$KEYSTORE_PASSWORD" >> gradle.properties
+      echo "RELEASE_KEY_ALIAS=$KEY_ALIAS" >> gradle.properties
+      echo "RELEASE_KEY_PASSWORD=$KEY_PASSWORD" >> gradle.properties
+    fi
 
-🚀 Build Environment:
-• Java Version: 17
-• Gradle Version: 8.2.2
-• Android API Level: 34
-• Build Tools: 34.0.0
-EOF
-        
-        # Replace placeholders
-        sed -i "s/FLAVOR_PLACEHOLDER/$FLAVOR/g" build_info.txt
-        sed -i "s/BUILD_TYPE_PLACEHOLDER/$BUILD_TYPE/g" build_info.txt
-        sed -i "s/VERSION_PLACEHOLDER/$VERSION_NAME/g" build_info.txt
-        sed -i "s/BUILD_NUMBER_PLACEHOLDER/${{ github.run_number }}/g" build_info.txt
-        sed -i "s/COMMIT_PLACEHOLDER/$(git rev-parse --short HEAD)/g" build_info.txt
-        sed -i "s/BUILD_TIME_PLACEHOLDER/$(date -u +'%Y-%m-%d %H:%M:%S UTC')/g" build_info.txt
-        sed -i "s/APK_NAME_PLACEHOLDER/${{ steps.apk.outputs.apk_name }}/g" build_info.txt
-        sed -i "s/APK_SIZE_PLACEHOLDER/${{ steps.apk.outputs.apk_size }}/g" build_info.txt
-        sed -i "s/ROOT_SUPPORT_PLACEHOLDER/$ROOT_SUPPORT/g" build_info.txt
-        sed -i "s/LIBSU_INTEGRATION_PLACEHOLDER/$LIBSU_INTEGRATION/g" build_info.txt
-        sed -i "s/R8_OBFUSCATION_PLACEHOLDER/$R8_OBFUSCATION/g" build_info.txt
-        
-        echo "Build info generated successfully"
-        echo "--- BUILD INFO CONTENT ---"
-        cat build_info.txt
-    
-    - name: Upload APK
-      if: steps.apk.outputs.apk_path != ''
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ steps.apk.outputs.apk_name }}
-        path: ${{ steps.apk.outputs.apk_path }}
-        retention-days: 30
-    
-    - name: Upload build info
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-info-${{ steps.config.outputs.flavor }}-${{ steps.config.outputs.build_type }}
-        path: android/build_info.txt
-        retention-days: 7
-    
-    - name: Create Release
-      if: startsWith(github.ref, 'refs/tags/v') && steps.config.outputs.build_type == 'release'
-      uses: softprops/action-gh-release@v1
-      with:
-        files: ${{ steps.apk.outputs.apk_path }}
-        body_path: android/build_info.txt
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+- name: Build APK
+  run: |
+    BUILD_TYPE="${{ steps.config.outputs.build_type }}"
+    FLAVOR="${{ steps.config.outputs.flavor }}"
+    FLAVOR_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOR:0:1})${FLAVOR:1}"
+    BUILD_TYPE_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${BUILD_TYPE:0:1})${BUILD_TYPE:1}"
+    ./gradlew assemble${FLAVOR_CAP}${BUILD_TYPE_CAP} --stacktrace --info
+
+- name: Run tests
+  if: steps.config.outputs.build_type != 'release'
+  run: |
+    FLAVOR_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOR:0:1})${FLAVOR:1}"
+    BUILD_TYPE_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${BUILD_TYPE:0:1})${BUILD_TYPE:1}"
+    ./gradlew test${FLAVOR_CAP}${BUILD_TYPE_CAP}UnitTest --continue
+
+- name: Find and rename APK
+  id: apk
+  run: |
+    BUILD_TYPE="${{ steps.config.outputs.build_type }}"
+    FLAVOR="${{ steps.config.outputs.flavor }}"
+    APK_PATH="app/build/outputs/apk/$FLAVOR/$BUILD_TYPE"
+    APK_FILE=$(find $APK_PATH -name "*.apk" | head -1)
+    if [ -f "$APK_FILE" ]; then
+      VERSION_NAME=$(grep "versionName" app/build.gradle | sed 's/.*".*".*/\1/')
+      BUILD_NUMBER=${{ github.run_number }}
+      NEW_NAME="PoolAssistant-$FLAVOR-$BUILD_TYPE-v$VERSION_NAME-build$BUILD_NUMBER.apk"
+      NEW_PATH="$APK_PATH/$NEW_NAME"
+      mv "$APK_FILE" "$NEW_PATH"
+      echo "apk_path=$NEW_PATH" >> $GITHUB_OUTPUT
+      echo "apk_name=$NEW_NAME" >> $GITHUB_OUTPUT
+      APK_SIZE=$(du -h "$NEW_PATH" | cut -f1)
+      echo "apk_size=$APK_SIZE" >> $GITHUB_OUTPUT
+    else
+      echo "APK not found in $APK_PATH"
+      exit 1
+    fi
+
+- name: Generate build info
+  run: |
+    FLAVOR="${{ steps.config.outputs.flavor }}"
+    BUILD_TYPE="${{ steps.config.outputs.build_type }}"
+    if [ "$FLAVOR" = "pro" ]; then
+      ROOT_SUPPORT="Yes"
+      LIBSU_INTEGRATION="Yes"
+    else
+      ROOT_SUPPORT="No"
+      LIBSU_INTEGRATION="No"
+    fi
+    if [ "$BUILD_TYPE" = "release" ]; then
+      R8_OBFUSCATION="Yes"
+    else
+      R8_OBFUSCATION="No"
+    fi
+    VERSION_NAME=$(grep "versionName" app/build.gradle | sed 's/.*".*".*/\1/')
+    cat <<EOF > build_info.txt
+
+Pool Assistant Build Info
+
+🏷️ Build Details: • Flavor: $FLAVOR • Build Type: $BUILD_TYPE • Version: $VERSION_NAME • Build Number: ${{ github.run_number }} • Commit: $(git rev-parse --short HEAD) • Build Time: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
+
+📦 APK Details: • File: ${{ steps.apk.outputs.apk_name }} • Size: ${{ steps.apk.outputs.apk_size }} • Min SDK: 24 (Android 7.0) • Target SDK: 34 (Android 14)
+
+🔧 Features: • Root Support: $ROOT_SUPPORT • libsu Integration: $LIBSU_INTEGRATION • R8 Obfuscation: $R8_OBFUSCATION
+
+🚀 Build Environment: • Java Version: 17 • Gradle Version: 8.2.2 • Android API Level: 34 • Build Tools: 34.0.0 EOF
+
+- name: Upload APK
+  if: steps.apk.outputs.apk_path != ''
+  uses: actions/upload-artifact@v4
+  with:
+    name: ${{ steps.apk.outputs.apk_name }}
+    path: ${{ steps.apk.outputs.apk_path }}
+    retention-days: 30
+
+- name: Upload build info
+  uses: actions/upload-artifact@v4
+  with:
+    name: build-info-${{ steps.config.outputs.flavor }}-${{ steps.config.outputs.build_type }}
+    path: build_info.txt
+    retention-days: 7
+
+- name: Create Release
+  if: startsWith(github.ref, 'refs/tags/v') && steps.config.outputs.build_type == 'release'
+  uses: softprops/action-gh-release@v1
+  with:
+    files: ${{ steps.apk.outputs.apk_path }}
+    body_path: build_info.txt
+    draft: false
+    prerelease: false
+  env:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
