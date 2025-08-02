@@ -1,4 +1,4 @@
-name: 🎱 Simple APK Build
+name: 🎱 Simple APK Debug Build
 
 on:
   workflow_dispatch:
@@ -33,21 +33,6 @@ jobs:
 
     - name: Make gradlew executable
       run: chmod +x gradlew
-
-    - name: Setup keystore
-      env:
-        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-      run: |
-        echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
-        cat <<EOF >> android/gradle.properties
-RELEASE_STORE_FILE=release.keystore
-RELEASE_STORE_PASSWORD=$KEYSTORE_PASSWORD
-RELEASE_KEY_ALIAS=$KEY_ALIAS
-RELEASE_KEY_PASSWORD=$KEY_PASSWORD
-EOF
 
     - name: Build APK (standardDebug)
       run: ./gradlew assembleStandardDebug --stacktrace
