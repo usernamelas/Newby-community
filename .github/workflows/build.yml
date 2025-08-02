@@ -21,7 +21,7 @@ jobs:
         distribution: 'temurin'
 
     - name: Cache Gradle packages
-      uses: actions/cache@v4
+      uses: actions/cache@v3
       with:
         path: |
           ~/.gradle/caches
@@ -34,42 +34,31 @@ jobs:
       run: chmod +x gradlew
 
     - name: Build Debug APK
-      run: ./gradlew assembleDebug
+      run: ./gradlew :android:app:assembleDebug
 
-    - name: Build Release APK
-      run: ./gradlew assembleRelease
-
-    - name: List build outputs (Debug)
-      run: |
-        echo "=== Debug build outputs ==="
-        find . -name "*.apk" -type f
-        echo "=== APK directory structure ==="
-        ls -la android/app/build/outputs/ || echo "outputs folder not found"
-        ls -la android/app/build/outputs/apk/ || echo "apk folder not found"
+    - name: List APK Output Directory
+      run: ls -R android/app/build/outputs/apk/
 
     - name: Upload Debug APK
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       with:
         name: pool-assistant-debug
-        path: |
-          android/app/build/outputs/apk/debug/*.apk
-          android/app/build/outputs/apk/standardDebug/*.apk
-          android/app/build/outputs/apk/proDebug/*.apk
-          android/app/build/outputs/apk/**/*debug*.apk
+        path: android/app/build/outputs/apk/debug/*.apk
+
+    - name: Build Release APK
+      run: ./gradlew :android:app:assembleRelease
+
+    - name: List Release APK Directory
+      run: ls -R android/app/build/outputs/apk/
 
     - name: Upload Release APK
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       with:
         name: pool-assistant-release
-        path: |
-          android/app/build/outputs/apk/release/*.apk
-          android/app/build/outputs/apk/standardRelease/*.apk
-          android/app/build/outputs/apk/proRelease/*.apk
-          android/app/build/outputs/apk/**/*release*.apk
+        path: android/app/build/outputs/apk/release/*.apk
 
-    - name: Upload Mapping Files (if exists)
-      uses: actions/upload-artifact@v4
-      if: hashFiles('android/app/build/outputs/mapping/release/mapping.txt') != ''
+    - name: Upload Mapping Files
+      uses: actions/upload-artifact@v3
       with:
         name: mapping-files
         path: android/app/build/outputs/mapping/release/mapping.txt
