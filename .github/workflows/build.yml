@@ -9,9 +9,9 @@ on:
         default: 'debug'
         type: choice
         options:
-        - debug
-        - beta
-        - release
+          - debug
+          - beta
+          - release
       
       flavor:
         description: 'App flavor'
@@ -19,8 +19,8 @@ on:
         default: 'standard'
         type: choice
         options:
-        - standard
-        - pro
+          - standard
+          - pro
 
   push:
     branches: 
@@ -64,7 +64,6 @@ jobs:
         echo "Available SDK components:"
         $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --list_installed
         
-        # Install required components if not available
         if ! $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --list_installed | grep -q "platforms;android-${{ env.ANDROID_API_LEVEL }}"; then
           echo "Installing Android API ${{ env.ANDROID_API_LEVEL }}"
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-${{ env.ANDROID_API_LEVEL }}"
@@ -74,7 +73,7 @@ jobs:
           echo "Installing Build Tools ${{ env.ANDROID_BUILD_TOOLS }}"
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;${{ env.ANDROID_BUILD_TOOLS }}"
         fi
-    
+
     - name: Cache Gradle dependencies
       uses: actions/cache@v4
       with:
@@ -82,7 +81,7 @@ jobs:
           ~/.gradle/caches
           ~/.gradle/wrapper
         key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
-    
+
     - name: Setup Gradle Wrapper
       run: |
         echo "Current directory: $(pwd)"
@@ -101,7 +100,7 @@ jobs:
       run: |
         BUILD_TYPE="debug"
         FLAVOR="standard"
-        
+
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
           BUILD_TYPE="${{ github.event.inputs.build_type }}"
           FLAVOR="${{ github.event.inputs.flavor }}"
@@ -115,7 +114,7 @@ jobs:
         
         echo "build_type=$BUILD_TYPE" >> $GITHUB_OUTPUT
         echo "flavor=$FLAVOR" >> $GITHUB_OUTPUT
-    
+
     - name: Setup keystore
       if: steps.config.outputs.build_type == 'release'
       env:
@@ -131,60 +130,49 @@ jobs:
           echo "RELEASE_KEY_ALIAS=$KEY_ALIAS" >> gradle.properties
           echo "RELEASE_KEY_PASSWORD=$KEY_PASSWORD" >> gradle.properties
         fi
-    
+
     - name: Verify Build Configuration
       run: |
         echo "=== Environment Check ==="
-        echo "Java Version: $(java -version)"
-        echo "Gradle Version: $(./gradlew --version | head -3)"
-        echo ""
-        echo "=== Available Build Variants ==="
-        ./gradlew tasks | grep -E "(assemble|build)" | head -10
-    
+        java -version
+        ./gradlew --version
+
+        echo "=== Available Build Variants in :app Module ==="
+        ./gradlew :app:tasks --all | grep -E "(assemble|build)" | head -40
+
     - name: Build APK
       run: |
         BUILD_TYPE="${{ steps.config.outputs.build_type }}"
         FLAVOR="${{ steps.config.outputs.flavor }}"
-        
-        # Capitalize for Gradle task
+
         FLAVOR_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOR:0:1})${FLAVOR:1}"
         BUILD_TYPE_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${BUILD_TYPE:0:1})${BUILD_TYPE:1}"
-        
-        echo "=== Building $FLAVOR_CAP $BUILD_TYPE_CAP APK ==="
-        echo "Task: assemble${FLAVOR_CAP}${BUILD_TYPE_CAP}"
-        
-        # Build with proper task name
-        ./gradlew assemble${FLAVOR_CAP}${BUILD_TYPE_CAP} --stacktrace
-    
-    - name: Run tests
-      if: false
-      run: echo "Tests skipped"
-    
+
+        TASK=":app:assemble${FLAVOR_CAP}${BUILD_TYPE_CAP}"
+
+        echo "=== Building APK with task: $TASK ==="
+        ./gradlew $TASK --stacktrace
+
     - name: Find and rename APK (Dynamic)
       id: apk
       run: |
         echo "=== Looking for APK files ==="
         find . -name "*.apk" -type f | head -10
         
-        # Find the most recent APK
         APK_FILE=$(find . -name "*.apk" -type f | head -1)
         
         if [ -f "$APK_FILE" ]; then
           echo "Found APK: $APK_FILE"
           
-          # Get file info
           APK_SIZE=$(du -h "$APK_FILE" | cut -f1)
           BUILD_NUMBER=${{ github.run_number }}
-          
-          # Create new name based on original filename
+
           ORIGINAL_NAME=$(basename "$APK_FILE")
           NEW_NAME="PoolAssistant-build$BUILD_NUMBER-$ORIGINAL_NAME"
           
-          # Get directory and create new path
           APK_DIR=$(dirname "$APK_FILE")
           NEW_PATH="$APK_DIR/$NEW_NAME"
           
-          # Rename file
           mv "$APK_FILE" "$NEW_PATH"
           
           echo "apk_path=$NEW_PATH" >> $GITHUB_OUTPUT
@@ -194,11 +182,10 @@ jobs:
           echo "APK renamed to: $NEW_PATH"
         else
           echo "No APK file found!"
-          echo "Searching in common locations..."
           find . -path "*/build/outputs/*" -name "*.apk" || echo "No APK in build outputs"
           exit 1
         fi
-    
+
     - name: Generate build info
       run: |
         FLAVOR="${{ steps.config.outputs.flavor }}"
@@ -216,7 +203,7 @@ jobs:
           R8_OBFUSCATION="No"
         fi
         VERSION_NAME=$(grep "versionName" app/build.gradle | sed 's/.*"\(.*\)".*/\1/')
-        
+
         echo "Pool Assistant Build Info" > build_info.txt
         echo "" >> build_info.txt
         echo "Build Details:" >> build_info.txt
@@ -237,7 +224,7 @@ jobs:
         echo "• Root Support: $ROOT_SUPPORT" >> build_info.txt
         echo "• libsu Integration: $LIBSU_INTEGRATION" >> build_info.txt
         echo "• R8 Obfuscation: $R8_OBFUSCATION" >> build_info.txt
-    
+
     - name: Upload APK
       if: steps.apk.outputs.apk_path != ''
       uses: actions/upload-artifact@v4
@@ -245,14 +232,14 @@ jobs:
         name: ${{ steps.apk.outputs.apk_name }}
         path: ${{ steps.apk.outputs.apk_path }}
         retention-days: 30
-    
+
     - name: Upload build info
       uses: actions/upload-artifact@v4
       with:
         name: build-info-${{ steps.config.outputs.flavor }}-${{ steps.config.outputs.build_type }}
         path: build_info.txt
         retention-days: 7
-    
+
     - name: Create Release
       if: startsWith(github.ref, 'refs/tags/v') && steps.config.outputs.build_type == 'release'
       uses: softprops/action-gh-release@v1
