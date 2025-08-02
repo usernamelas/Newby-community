@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base Dimensions -->
+    <dimen name="base_unit">8dp</dimen>
+    
+    <!-- Margins -->
+    <dimen name="margin_tiny">4dp</dimen>
+    <dimen name="margin_small">8dp</dimen>
+    <dimen name="margin_medium">16dp</dimen>
+    <dimen name="margin_large">24dp</dimen>
+    <dimen name="margin_extra_large">32dp</dimen>
+    
+    <!-- Padding -->
+    <dimen name="padding_tiny">4dp</dimen>
+    <dimen name="padding_small">8dp</dimen>
+    <dimen name="padding_medium">12dp</dimen>
+    <dimen name="padding_large">16dp</dimen>
+    <dimen name="padding_extra_large">24dp</dimen>
+    
+    <!-- Activity Margins -->
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+    
+    <!-- Card Dimensions -->
+    <dimen name="card_corner_radius">12dp</dimen>
+    <dimen name="card_elevation">4dp</dimen>
+    <dimen name="card_elevation_small">2dp</dimen>
+    <dimen name="card_elevation_large">8dp</dimen>
+    <dimen name="card_margin">8dp</dimen>
+    <dimen name="card_padding">16dp</dimen>
+    
+    <!-- Icon Sizes -->
+    <dimen name="icon_tiny">16dp</dimen>
+    <dimen name="icon_small">24dp</dimen>
+    <dimen name="icon_medium">32dp</dimen>
+    <dimen name="icon_large">48dp</dimen>
+    <dimen name="icon_extra_large">64dp</dimen>
+    
+    <!-- Button Dimensions -->
+    <dimen name="button_height">48dp</dimen>
+    <dimen name="button_height_small">36dp</dimen>
+    <dimen name="button_height_large">56dp</dimen>
+    <dimen name="button_corner_radius">8dp</dimen>
+    <dimen name="button_elevation">2dp</dimen>
+    
+    <!-- FAB Dimensions -->
+    <dimen name="fab_margin">16dp</dimen>
+    <dimen name="fab_elevation">6dp</dimen>
+    <dimen name="fab_pressed_translation_z">12dp</dimen>
+    
+    <!-- Navigation Drawer -->
+    <dimen name="nav_header_height">176dp</dimen>
+    <dimen name="nav_header_icon_size">64dp</dimen>
+    <dimen name="nav_header_vertical_spacing">16dp</dimen>
+    <dimen name="nav_header_title_text_size">18sp</dimen>
+    <dimen name="nav_header_subtitle_text_size">14sp</dimen>
+    
+    <!-- Status Indicators -->
+    <dimen name="status_indicator_size">8dp</dimen>
+    <dimen name="status_indicator_large">12dp</dimen>
+    <dimen name="status_indicator_margin">8dp</dimen>
+    
+    <!-- Text Sizes -->
+    <dimen name="text_size_caption">12sp</dimen>
+    <dimen name="text_size_body">14sp</dimen>
+    <dimen name="text_size_body_large">16sp</dimen>
+    <dimen name="text_size_title">18sp</dimen>
+    <dimen name="text_size_headline">24sp</dimen>
+    <dimen name="text_size_display">32sp</dimen>
+    
+    <!-- Divider -->
+    <dimen name="divider_height">1dp</dimen>
+    <dimen name="divider_margin">16dp</dimen>
+    
+    <!-- List Items -->
+    <dimen name="list_item_height">56dp</dimen>
+    <dimen name="list_item_height_small">48dp</dimen>
+    <dimen name="list_item_height_large">72dp</dimen>
+    <dimen name="list_item_padding">16dp</dimen>
+    <dimen name="list_item_margin">8dp</dimen>
+    
+    <!-- Bottom Sheet -->
+    <dimen name="bottom_sheet_elevation">8dp</dimen>
+    <dimen name="bottom_sheet_handle_width">32dp</dimen>
+    <dimen name="bottom_sheet_handle_height">4dp</dimen>
+    <dimen name="bottom_sheet_corner_radius">16dp</dimen>
+    
+    <!-- Toolbar -->
+    <dimen name="toolbar_elevation">4dp</dimen>
+    <dimen name="toolbar_title_margin">16dp</dimen>
+    
+    <!-- Image Dimensions -->
+    <dimen name="image_thumbnail">56dp</dimen>
+    <dimen name="image_small">72dp</dimen>
+    <dimen name="image_medium">120dp</dimen>
+    <dimen name="image_large">200dp</dimen>
+    
+    <!-- Spacing -->
+    <dimen name="spacing_micro">2dp</dimen>
+    <dimen name="spacing_tiny">4dp</dimen>
+    <dimen name="spacing_small">8dp</dimen>
+    <dimen name="spacing_medium">16dp</dimen>
+    <dimen name="spacing_large">24dp</dimen>
+    <dimen name="spacing_extra_large">32dp</dimen>
+    <dimen name="spacing_huge">48dp</dimen>
+    
+    <!-- Minimum Touch Target -->
+    <dimen name="min_touch_target">48dp</dimen>
+    
+    <!-- Layout Specific -->
+    <dimen name="bottom_spacer_height">80dp</dimen>
+    <dimen name="top_spacer_height">16dp</dimen>
+    
+    <!-- Animation -->
+    <dimen name="animation_offset">16dp</dimen>
+    
+    <!-- Border/Stroke -->
+    <dimen name="border_width">1dp</dimen>
+    <dimen name="border_width_thick">2dp</dimen>
+    
+    <!-- Overlay Specific -->
+    <dimen name="overlay_margin">8dp</dimen>
+    <dimen name="overlay_padding">12dp</dimen>
+    <dimen name="trajectory_line_width">3dp</dimen>
+    
+    <!-- Grid Layout -->
+    <dimen name="grid_spacing">8dp</dimen>
+    <dimen name="grid_item_height">120dp</dimen>
+    
+    <!-- Progress Indicators -->
+    <dimen name="progress_size">24dp</dimen>
+    <dimen name="progress_size_large">48dp</dimen>
+    
+    <!-- Snackbar -->
+    <dimen name="snackbar_margin">16dp</dimen>
+    
+    <!-- Dialog -->
+    <dimen name="dialog_margin">24dp</dimen>
+    <dimen name="dialog_padding">24dp</dimen>
+    <dimen name="dialog_corner_radius">12dp</dimen>
+    
+    <!-- Switch/Toggle -->
+    <dimen name="switch_padding">16dp</dimen>
+    
+    <!-- Slider -->
+    <dimen name="slider_height">20dp</dimen>
+    <dimen name="slider_thumb_size">20dp</dimen>
+    
+    <!-- Chip -->
+    <dimen name="chip_height">32dp</dimen>
+    <dimen name="chip_corner_radius">16dp</dimen>
+    <dimen name="chip_padding">12dp</dimen>
+    
+    <!-- Tab Layout -->
+    <dimen name="tab_height">48dp</dimen>
+    <dimen name="tab_min_width">72dp</dimen>
+    
+    <!-- App Bar -->
+    <dimen name="app_bar_elevation">4dp</dimen>
+    
+    <!-- Search -->
+    <dimen name="search_bar_height">56dp</dimen>
+    <dimen name="search_bar_corner_radius">28dp</dimen>
+</resources>

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary Brand Colors -->
+    <color name="color_primary">#1976D2</color>
+    <color name="color_primary_variant">#1565C0</color>
+    <color name="color_on_primary">#FFFFFF</color>
+    
+    <!-- Secondary Colors -->
+    <color name="color_secondary">#4CAF50</color>
+    <color name="color_secondary_variant">#388E3C</color>
+    <color name="color_on_secondary">#FFFFFF</color>
+    
+    <!-- Tertiary Colors -->
+    <color name="color_tertiary">#FF9800</color>
+    <color name="color_tertiary_variant">#F57C00</color>
+    <color name="color_on_tertiary">#FFFFFF</color>
+    
+    <!-- Surface Colors -->
+    <color name="color_surface">#FFFFFF</color>
+    <color name="color_surface_variant">#F5F5F5</color>
+    <color name="color_on_surface">#212121</color>
+    <color name="color_on_surface_variant">#757575</color>
+    
+    <!-- Background Colors -->
+    <color name="color_background">#FAFAFA</color>
+    <color name="color_on_background">#212121</color>
+    
+    <!-- Error Colors -->
+    <color name="color_error">#D32F2F</color>
+    <color name="color_error_variant">#C62828</color>
+    <color name="color_on_error">#FFFFFF</color>
+    
+    <!-- Success Colors -->
+    <color name="color_success">#388E3C</color>
+    <color name="color_success_variant">#2E7D32</color>
+    <color name="color_on_success">#FFFFFF</color>
+    
+    <!-- Warning Colors -->
+    <color name="color_warning">#F57C00</color>
+    <color name="color_warning_variant">#EF6C00</color>
+    <color name="color_on_warning">#FFFFFF</color>
+    
+    <!-- Status Colors -->
+    <color name="status_active">#4CAF50</color>
+    <color name="status_inactive">#9E9E9E</color>
+    <color name="status_ready">#2196F3</color>
+    <color name="status_scanning">#FF9800</color>
+    <color name="status_checking">#9C27B0</color>
+    <color name="status_error">#F44336</color>
+    
+    <!-- Trajectory Colors -->
+    <color name="trajectory_green">#00FF00</color>
+    <color name="trajectory_blue">#0080FF</color>
+    <color name="trajectory_red">#FF0040</color>
+    <color name="trajectory_yellow">#FFD700</color>
+    <color name="trajectory_purple">#8A2BE2</color>
+    <color name="trajectory_cyan">#00FFFF</color>
+    
+    <!-- White with Alpha -->
+    <color name="white_alpha_87">#DEFFFFFF</color>
+    <color name="white_alpha_70">#B3FFFFFF</color>
+    <color name="white_alpha_54">#8AFFFFFF</color>
+    <color name="white_alpha_38">#61FFFFFF</color>
+    
+    <!-- Black with Alpha -->
+    <color name="black_alpha_87">#DE000000</color>
+    <color name="black_alpha_70">#B3000000</color>
+    <color name="black_alpha_54">#8A000000</color>
+    <color name="black_alpha_38">#61000000</color>
+    
+    <!-- Dark Theme Colors -->
+    <color name="color_primary_dark">#90CAF9</color>
+    <color name="color_primary_variant_dark">#64B5F6</color>
+    <color name="color_on_primary_dark">#000000</color>
+    
+    <color name="color_secondary_dark">#81C784</color>
+    <color name="color_secondary_variant_dark">#66BB6A</color>
+    <color name="color_on_secondary_dark">#000000</color>
+    
+    <color name="color_surface_dark">#121212</color>
+    <color name="color_surface_variant_dark">#1E1E1E</color>
+    <color name="color_on_surface_dark">#FFFFFF</color>
+    <color name="color_on_surface_variant_dark">#BDBDBD</color>
+    
+    <color name="color_background_dark">#121212</color>
+    <color name="color_on_background_dark">#FFFFFF</color>
+    
+    <!-- Gradient Colors -->
+    <color name="gradient_start">#1976D2</color>
+    <color name="gradient_center">#2196F3</color>
+    <color name="gradient_end">#64B5F6</color>
+    
+    <color name="gradient_secondary_start">#4CAF50</color>
+    <color name="gradient_secondary_center">#66BB6A</color>
+    <color name="gradient_secondary_end">#81C784</color>
+    
+    <!-- Card Colors -->
+    <color name="card_background">#FFFFFF</color>
+    <color name="card_background_dark">#1E1E1E</color>
+    <color name="card_stroke">#E0E0E0</color>
+    <color name="card_stroke_dark">#333333</color>
+    
+    <!-- Ripple Colors -->
+    <color name="ripple_primary">#331976D2</color>
+    <color name="ripple_secondary">#334CAF50</color>
+    <color name="ripple_surface">#33000000</color>
+    <color name="ripple_surface_dark">#33FFFFFF</color>
+</resources>
