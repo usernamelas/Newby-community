@@ -20,14 +20,16 @@ on:
 jobs:
   cleanup:
     runs-on: ubuntu-latest
-    
+    env:
+      CLEANUP_AGE: ${{ github.event.inputs.cleanup_age != '' && github.event.inputs.cleanup_age || '30' }}
+      KEEP_RECENT: ${{ github.event.inputs.keep_recent != '' && github.event.inputs.keep_recent || '5' }}
     steps:
     - name: Delete old artifacts
       uses: c-hive/gha-remove-artifacts@v1
       with:
-        age: '${{ github.event.inputs.cleanup_age || "30" }} days'
+        age: '${{ env.CLEANUP_AGE }} days'
         skip-tags: true
-        skip-recent: ${{ github.event.inputs.keep_recent || 5 }}
+        skip-recent: ${{ env.KEEP_RECENT }}
     
     - name: Clean up old releases (keep last 10)
       uses: dev-drprasad/delete-older-releases@v0.3.2
@@ -40,6 +42,6 @@ jobs:
     - name: Cleanup summary
       run: |
         echo "🧹 Cleanup completed"
-        echo "- Removed artifacts older than ${{ github.event.inputs.cleanup_age || 30 }} days"
-        echo "- Kept ${{ github.event.inputs.keep_recent || 5 }} most recent artifacts"
+        echo "- Removed artifacts older than $CLEANUP_AGE days"
+        echo "- Kept $KEEP_RECENT most recent artifacts"
         echo "- Kept 10 most recent releases"
