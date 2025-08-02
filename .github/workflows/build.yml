@@ -1,7 +1,3 @@
-# ================================
-# .github/workflows/build.yml
-# ================================
-
 name: 🎱 Pool Assistant Build
 
 on:
@@ -200,8 +196,8 @@ jobs:
     - name: Run tests
       if: matrix.build_type != 'release'
       run: |
-        FLAVOR_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${{ matrix.flavor }}:0:1)${{ matrix.flavor }}:1"
-        BUILD_TYPE_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${{ matrix.build_type }}:0:1)${{ matrix.build_type }}:1"
+        FLAVOR_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOR:0:1})${FLAVOR:1}"
+        BUILD_TYPE_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${BUILD_TYPE:0:1})${BUILD_TYPE:1}"
         ./gradlew test${FLAVOR_CAP}${BUILD_TYPE_CAP}UnitTest --continue
     
     - name: Rename APK files
@@ -229,31 +225,28 @@ jobs:
         if [ -f "$APK_FILE" ]; then
           APK_SIZE=$(du -h "$APK_FILE" | cut -f1)
           
-          cat > apk_info.txt << EOF
-📱 Pool Assistant Build Info
-=============================
-
-🏷️  Build Details:
-   • Flavor: ${{ matrix.flavor }}
-   • Build Type: ${{ matrix.build_type }}
-   • Version: $(grep "versionName" app/build.gradle | sed 's/.*"\(.*\)".*/\1/')
-   • Build Number: ${{ github.run_number }}
-   • Commit: ${{ env.GIT_COMMIT }}
-   • Build Time: ${{ env.BUILD_TIME }}
-
-📦 APK Details:
-   • File: ${{ env.APK_FILE_NAME }}
-   • Size: $APK_SIZE
-   • Min SDK: 24 (Android 7.0)
-   • Target SDK: 34 (Android 14)
-
-🔧 Features:
-   • Root Support: ${{ matrix.flavor == 'pro' && 'Yes' || 'No' }}
-   • libsu Ready: ${{ matrix.flavor == 'pro' && 'Yes' || 'No' }}
-   • Stealth Mode: ${{ matrix.build_type == 'release' && 'Enabled' || 'Disabled' }}
-   • Debug Mode: ${{ matrix.build_type == 'debug' && 'Yes' || 'No' }}
-
-EOF
+          # Using echo instead of HEREDOC for better YAML compatibility
+          echo "📱 Pool Assistant Build Info" > apk_info.txt
+          echo "=============================" >> apk_info.txt
+          echo "🏷️ Build Details:" >> apk_info.txt
+          echo "• Flavor: ${{ matrix.flavor }}" >> apk_info.txt
+          echo "• Build Type: ${{ matrix.build_type }}" >> apk_info.txt
+          echo "• Version: $(grep "versionName" app/build.gradle | sed 's/.*"\(.*\)".*/\1/')" >> apk_info.txt
+          echo "• Build Number: ${{ github.run_number }}" >> apk_info.txt
+          echo "• Commit: ${{ env.GIT_COMMIT }}" >> apk_info.txt
+          echo "• Build Time: ${{ env.BUILD_TIME }}" >> apk_info.txt
+          echo "" >> apk_info.txt
+          echo "📦 APK Details:" >> apk_info.txt
+          echo "• File: ${{ env.APK_FILE_NAME }}" >> apk_info.txt
+          echo "• Size: $APK_SIZE" >> apk_info.txt
+          echo "• Min SDK: 24 (Android 7.0)" >> apk_info.txt
+          echo "• Target SDK: 34 (Android 14)" >> apk_info.txt
+          echo "" >> apk_info.txt
+          echo "🔧 Features:" >> apk_info.txt
+          echo "• Root Support: ${{ matrix.flavor == 'pro' && 'Yes' || 'No' }}" >> apk_info.txt
+          echo "• libsu Ready: ${{ matrix.flavor == 'pro' && 'Yes' || 'No' }}" >> apk_info.txt
+          echo "• Stealth Mode: ${{ matrix.build_type == 'release' && 'Enabled' || 'Disabled' }}" >> apk_info.txt
+          echo "• Debug Mode: ${{ matrix.build_type == 'debug' && 'Yes' || 'No' }}" >> apk_info.txt
           
           echo "APK_SIZE=$APK_SIZE" >> $GITHUB_ENV
         fi
@@ -351,22 +344,3 @@ EOF
           echo "❌ Build failed"
           exit 1
         fi
-    - name: Build APK
-      run: |
-        BUILD_TYPE="${{ matrix.build_type }}"
-        FLAVOR="${{ matrix.flavor }}"
-        
-        echo "Building $FLAVOR $BUILD_TYPE APK..."
-        
-        if [ "$BUILD_TYPE" = "release" ]; then
-          ./gradlew assemble${FLAVOR^}Release --stacktrace
-        else
-          ./gradlew assemble${FLAVOR^}${BUILD_TYPE^} --stacktrace
-        fi
-    
-    - name: Run tests
-      if: matrix.build_type != 'release'
-      run: |
-        ./gradlew test${{ matrix.flavor }}${{ matrix.build_type }} --continue
-    
- 
