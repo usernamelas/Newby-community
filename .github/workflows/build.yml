@@ -202,7 +202,7 @@ jobs:
         # Generate build info file
         cat > build_info.txt << 'EOF'
  Pool Assistant Build Info
-============================
+
 
 🏷️ Build Details:
 • Flavor: FLAVOR_PLACEHOLDER
