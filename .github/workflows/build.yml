@@ -41,6 +41,9 @@ jobs:
   build:
     name: Build APK
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
     
     steps:
     - name: Checkout repository
@@ -57,8 +60,11 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
       with:
-        api-level: ${{ env.ANDROID_API_LEVEL }}
-        build-tools: ${{ env.ANDROID_BUILD_TOOLS }}
+        packages: |
+          platforms;android-${{ env.ANDROID_API_LEVEL }}
+          build-tools;${{ env.ANDROID_BUILD_TOOLS }}
+          platform-tools
+        accept-android-sdk-licenses: true
     
     - name: Cache Gradle dependencies
       uses: actions/cache@v4
@@ -68,8 +74,18 @@ jobs:
           ~/.gradle/wrapper
         key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
     
-    - name: Make gradlew executable
-      run: chmod +x gradlew
+    - name: Setup Gradle Wrapper
+      run: |
+        echo "Current directory: $(pwd)"
+        ls -la
+        if [ -f gradlew ]; then
+          echo "gradlew found, making executable..."
+          chmod +x gradlew
+          ./gradlew --version
+        else
+          echo "gradlew not found!"
+          exit 1
+        fi
     
     - name: Determine build configuration
       id: config
