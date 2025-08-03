@@ -95,6 +95,28 @@ jobs:
           exit 1
         fi
     
+    
+    - name: Fix Compose Version
+      run: |
+        echo "=== Checking and Fixing Compose Version ==="
+        cd android
+        
+        # Check current compose version
+        if [ -f gradle.properties ]; then
+          echo "Current gradle.properties compose version:"
+          grep compose_version gradle.properties || echo "No compose_version found"
+          
+          # Update to compatible version
+          sed -i 's/compose_version=.*/compose_version=1.6.8/' gradle.properties
+          
+          echo "Updated gradle.properties:"
+          grep compose_version gradle.properties
+        else
+          echo "gradle.properties not found in android directory!"
+          exit 1
+        fi
+    
+    
     - name: Determine build configuration
       id: config
       run: |
