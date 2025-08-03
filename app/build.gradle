@@ -8,7 +8,7 @@ plugins {
 def debugKeystoreFile = file("${project.buildDir}/debug.keystore")
 if (!debugKeystoreFile.exists()) {
     println("Creating debug keystore at: ${debugKeystoreFile.path}")
-    debugKeystoreFile.parentFile.mkdirs() // Baris ini membuat direktori induk
+    debugKeystoreFile.parentFile.mkdirs()
     exec {
         commandLine 'keytool', '-genkey', '-v',
             '-keystore', debugKeystoreFile.absolutePath,
@@ -198,7 +198,7 @@ android {
                 def appName = "PoolAssistant"
                 def flavor = variant.flavorName.capitalize()
                 def buildType = variant.buildType
-                def version = variant.versionName
+                def version = variant.versionName.get() // <-- PERBAIKAN DI SINI
                 def buildNumber = System.getenv("BUILD_NUMBER") ?: "local"
 
                 def buildTypeName = buildType
