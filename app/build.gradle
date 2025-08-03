@@ -4,6 +4,22 @@ plugins {
     // id 'com.google.gms.google-services' // Optional
 }
 
+// --- Logika untuk membuat debug.keystore jika tidak ada ---
+def debugKeystoreFile = file("${project.buildDir}/debug.keystore")
+if (!debugKeystoreFile.exists()) {
+    println("Creating debug keystore at: ${debugKeystoreFile.path}")
+    exec {
+        commandLine 'keytool', '-genkey', '-v',
+            '-keystore', debugKeystoreFile.absolutePath,
+            '-storepass', 'android', '-alias', 'androiddebugkey',
+            '-keypass', 'android',
+            '-keyalg', 'RSA', '-keysize', '2048',
+            '-validity', '10000',
+            '-dname', 'CN=Android Debug, O=Android, C=US'
+    }
+}
+// --------------------------------------------------------
+
 android {
     namespace 'com.victory.poolassistant'
     compileSdk 34
@@ -30,23 +46,13 @@ android {
 
     signingConfigs {
         debug {
+            storeFile debugKeystoreFile
             storePassword 'android'
             keyAlias 'androiddebugkey'
             keyPassword 'android'
-        
-        // Tentukan path file debug.keystore secara eksplisit
-        storeFile file(System.getenv("HOME") + "/.android/debug.keystore")
-        storePassword 'android'
-        keyAlias 'androiddebugkey'
-        keyPassword 'android'
-    }
-    
-
-
         }
 
         release {
-            // Load keystore info from gradle.properties or environment
             storeFile file(findProperty('RELEASE_STORE_FILE') ?: 'release.keystore')
             storePassword findProperty('RELEASE_STORE_PASSWORD') ?: System.getenv('KEYSTORE_PASSWORD')
             keyAlias findProperty('RELEASE_KEY_ALIAS') ?: System.getenv('KEY_ALIAS')
@@ -67,21 +73,18 @@ android {
             buildConfigField "String", "BUILD_TYPE_NAME", "\"Debug\""
         }
 
-        // PROTECTED RELEASE - Full R8 obfuscation
         release {
             debuggable false
             minifyEnabled true
             shrinkResources true
 
-            // --- Logika untuk membuat APK unsigned jika properti tidak ada ---
             if (project.hasProperty('RELEASE_STORE_FILE')) {
                 signingConfig signingConfigs.release
                 System.out.println("Building signed release APK.")
             } else {
-                signingConfig null // Menghasilkan APK unsigned
+                signingConfig null
                 System.out.println("WARNING: Building unsigned release APK. Keystore properties not found.")
             }
-            // -------------------------------------------------------------
 
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
                          'proguard-rules.pro',
@@ -92,20 +95,17 @@ android {
             buildConfigField "String", "BUILD_TYPE_NAME", "\"Release-Protected\""
         }
 
-        // UNPROTECTED RELEASE - No obfuscation for learning/debugging
         releaseOpen {
             debuggable false
             minifyEnabled false
             shrinkResources false
 
-            // --- Logika untuk membuat APK unsigned jika properti tidak ada ---
             if (project.hasProperty('RELEASE_STORE_FILE')) {
                 signingConfig signingConfigs.release
             } else {
                 signingConfig null
                 System.out.println("WARNING: Building unsigned releaseOpen APK. Keystore properties not found.")
             }
-            // -------------------------------------------------------------
 
             proguardFiles 'proguard-clean-only.pro'
 
@@ -114,20 +114,17 @@ android {
             buildConfigField "String", "BUILD_TYPE_NAME", "\"Release-Open\""
         }
 
-        // BETA - Lightly obfuscated for testing
         beta {
             debuggable true
             minifyEnabled true
             shrinkResources false
 
-            // --- Logika untuk membuat APK unsigned jika properti tidak ada ---
             if (project.hasProperty('RELEASE_STORE_FILE')) {
                 signingConfig signingConfigs.release
             } else {
                 signingConfig null
                 System.out.println("WARNING: Building unsigned beta APK. Keystore properties not found.")
             }
-            // -------------------------------------------------------------
 
             proguardFiles getDefaultProguardFile('proguard-android.txt'),
                          'proguard-rules.pro'
@@ -193,36 +190,40 @@ android {
         checkReleaseBuilds false
         disable 'MissingTranslation', 'ExtraTranslation'
     }
+    
+    // --- PERBAIKAN: Gunakan androidComponents API untuk penamaan APK ---
+    androidComponents {
+        onVariants(selector().all(), { variant ->
+            variant.outputs.forEach { output ->
+                def appName = "PoolAssistant"
+                def flavor = variant.flavorName.capitalize()
+                def buildType = variant.buildType
+                def version = variant.versionName
+                def buildNumber = System.getenv("BUILD_NUMBER") ?: "local"
 
-    // Custom APK naming
-    applicationVariants.all { variant ->
-        variant.outputs.all {
-            def appName = "PoolAssistant"
-            def flavor = variant.flavorName.capitalize()
-            def buildType = variant.buildType.name
-            def version = variant.versionName
-            def buildNumber = System.getenv("BUILD_NUMBER") ?: "local"
-
-            // Map build type names for cleaner output
-            def buildTypeName = buildType
-            switch(buildType) {
-                case 'release':
-                    buildTypeName = 'Protected'
-                    break
-                case 'releaseOpen':
-                    buildTypeName = 'Open'
-                    break
-                case 'beta':
-                    buildTypeName = 'Beta'
-                    break
-                case 'debug':
-                    buildTypeName = 'Debug'
-                    break
+                // Map build type names for cleaner output
+                def buildTypeName = buildType
+                switch(buildType) {
+                    case 'release':
+                        buildTypeName = 'Protected'
+                        break
+                    case 'releaseOpen':
+                        buildTypeName = 'Open'
+                        break
+                    case 'beta':
+                        buildTypeName = 'Beta'
+                        break
+                    case 'debug':
+                        buildTypeName = 'Debug'
+                        break
+                }
+                
+                def newFileName = "${appName}-${flavor}-${buildTypeName}-v${version}-build${buildNumber}.apk"
+                output.outputFileName = newFileName
             }
-
-            outputFileName = "${appName}-${flavor}-${buildTypeName}-v${version}-build${buildNumber}.apk"
-        }
+        })
     }
+    // ----------------------------------------------------------------
 }
 
 dependencies {
