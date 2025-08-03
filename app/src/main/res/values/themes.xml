@@ -1,47 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme -->
+<resources>
+    <!-- Pool Assistant Theme - Material 3 Compatible -->
     <style name="Theme.PoolAssistant" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Primary brand color -->
+        <!-- Primary colors -->
         <item name="colorPrimary">@color/color_primary</item>
         <item name="colorOnPrimary">@color/color_on_primary</item>
         <item name="colorPrimaryContainer">@color/color_primary_variant</item>
         <item name="colorOnPrimaryContainer">@color/color_on_primary</item>
         
-        <!-- Secondary brand color -->
+        <!-- Secondary colors -->
         <item name="colorSecondary">@color/color_secondary</item>
         <item name="colorOnSecondary">@color/color_on_secondary</item>
         <item name="colorSecondaryContainer">@color/color_secondary_variant</item>
         <item name="colorOnSecondaryContainer">@color/color_on_secondary</item>
         
-        <!-- Tertiary color -->
+        <!-- Tertiary colors -->
         <item name="colorTertiary">@color/color_tertiary</item>
         <item name="colorOnTertiary">@color/color_on_tertiary</item>
         <item name="colorTertiaryContainer">@color/color_tertiary_variant</item>
         <item name="colorOnTertiaryContainer">@color/color_on_tertiary</item>
         
-        <!-- Error color -->
+        <!-- Error colors -->
         <item name="colorError">@color/color_error</item>
         <item name="colorOnError">@color/color_on_error</item>
         <item name="colorErrorContainer">@color/color_error_variant</item>
         <item name="colorOnErrorContainer">@color/color_on_error</item>
         
-        <!-- Background colors -->
-        <item name="colorBackground">@color/color_background</item>
-        <item name="colorOnBackground">@color/color_on_background</item>
-        
-        <!-- Surface colors -->
+        <!-- Surface colors (Material 3 - replaces background) -->
         <item name="colorSurface">@color/color_surface</item>
         <item name="colorOnSurface">@color/color_on_surface</item>
         <item name="colorSurfaceVariant">@color/color_surface_variant</item>
         <item name="colorOnSurfaceVariant">@color/color_on_surface_variant</item>
         
-        <!-- Status bar -->
+        <!-- Status bar styling -->
         <item name="android:statusBarColor">?attr/colorPrimary</item>
-        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
+        <item name="android:windowLightStatusBar">true</item>
         
-        <!-- Navigation bar -->
+        <!-- Navigation bar styling -->
         <item name="android:navigationBarColor">?attr/colorSurface</item>
-        <item name="android:windowLightNavigationBar" tools:targetApi="o">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        
+        <!-- Window styling -->
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
     </style>
 </resources>

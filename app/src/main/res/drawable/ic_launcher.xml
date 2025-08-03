@@ -1,0 +1,27 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Background circle -->
+    <path
+        android:fillColor="@color/color_primary"
+        android:pathData="M0,0h108v108h-108z" />
+    
+    <!-- Pool shape -->
+    <path
+        android:fillColor="@color/color_surface"
+        android:pathData="M20,25 Q20,15 30,15 L78,15 Q88,15 88,25 L88,75 Q88,85 78,85 L30,85 Q20,85 20,75 Z" />
+    
+    <!-- Water -->
+    <path
+        android:fillColor="@color/color_secondary"
+        android:fillAlpha="0.7"
+        android:pathData="M25,30 Q54,25 83,30 Q83,70 54,75 Q25,70 25,30 Z" />
+    
+    <!-- Pool assistant text -->
+    <path
+        android:fillColor="@color/color_on_primary"
+        android:pathData="M44,45 Q48,45 48,49 Q48,53 44,53 Q40,53 40,49 Q40,45 44,45 Z M64,45 Q68,45 68,49 Q68,53 64,53 Q60,53 60,49 Q60,45 64,45 Z M38,58 L70,58 Q72,58 72,60 L72,66 Q72,68 70,68 L38,68 Q36,68 36,66 L36,60 Q36,58 38,58 Z" />
+</vector>
