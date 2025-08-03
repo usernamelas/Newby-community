@@ -6,14 +6,17 @@ import android.content.SharedPreferences;
 /**
  * App Configuration Constants and Settings
  */
-public static final String VERSION_NAME = "2.0.0";  
-public static final int VERSION_CODE = 20000;
+
  
 public class AppConfig {
     
     // App Info
     public static final String APP_NAME = "Pool Assistant Pro";
     public static final String PACKAGE_NAME = "com.victory.poolassistant";
+    
+    // update version name
+    public static final String VERSION_NAME = "2.0.0";  
+    public static final int VERSION_CODE = 20000;
     
     // Preferences
     public static final String PREF_NAME = "pool_assistant_prefs";
