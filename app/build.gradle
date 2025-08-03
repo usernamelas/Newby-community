@@ -8,6 +8,7 @@ plugins {
 def debugKeystoreFile = file("${project.buildDir}/debug.keystore")
 if (!debugKeystoreFile.exists()) {
     println("Creating debug keystore at: ${debugKeystoreFile.path}")
+    debugKeystoreFile.parentFile.mkdirs() // Baris ini membuat direktori induk
     exec {
         commandLine 'keytool', '-genkey', '-v',
             '-keystore', debugKeystoreFile.absolutePath,
@@ -98,7 +99,7 @@ android {
         releaseOpen {
             debuggable false
             minifyEnabled false
-            shrinkResources false
+            shrinkResources true
 
             if (project.hasProperty('RELEASE_STORE_FILE')) {
                 signingConfig signingConfigs.release
@@ -191,7 +192,6 @@ android {
         disable 'MissingTranslation', 'ExtraTranslation'
     }
     
-    // --- PERBAIKAN: Gunakan androidComponents API untuk penamaan APK ---
     androidComponents {
         onVariants(selector().all(), { variant ->
             variant.outputs.forEach { output ->
@@ -201,7 +201,6 @@ android {
                 def version = variant.versionName
                 def buildNumber = System.getenv("BUILD_NUMBER") ?: "local"
 
-                // Map build type names for cleaner output
                 def buildTypeName = buildType
                 switch(buildType) {
                     case 'release':
@@ -223,7 +222,6 @@ android {
             }
         })
     }
-    // ----------------------------------------------------------------
 }
 
 dependencies {
