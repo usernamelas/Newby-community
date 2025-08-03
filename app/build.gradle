@@ -65,7 +65,7 @@ android {
         debug {
             debuggable true
             minifyEnabled false
-            shrinkResources false
+            shrinkResources = minifyEnabled // Perbaikan di sini
             applicationIdSuffix ".debug"
             versionNameSuffix "-debug"
 
@@ -77,7 +77,7 @@ android {
         release {
             debuggable false
             minifyEnabled true
-            shrinkResources true
+            shrinkResources = minifyEnabled // Perbaikan di sini
 
             if (project.hasProperty('RELEASE_STORE_FILE')) {
                 signingConfig signingConfigs.release
@@ -99,14 +99,7 @@ android {
         releaseOpen {
             debuggable false
             minifyEnabled false
-            shrinkResources true
-
-            if (project.hasProperty('RELEASE_STORE_FILE')) {
-                signingConfig signingConfigs.release
-            } else {
-                signingConfig null
-                System.out.println("WARNING: Building unsigned releaseOpen APK. Keystore properties not found.")
-            }
+            shrinkResources = minifyEnabled // Perbaikan di sini
 
             proguardFiles 'proguard-clean-only.pro'
 
@@ -118,7 +111,7 @@ android {
         beta {
             debuggable true
             minifyEnabled true
-            shrinkResources false
+            shrinkResources = minifyEnabled // Perbaikan di sini
 
             if (project.hasProperty('RELEASE_STORE_FILE')) {
                 signingConfig signingConfigs.release
@@ -198,7 +191,7 @@ android {
                 def appName = "PoolAssistant"
                 def flavor = variant.flavorName.capitalize()
                 def buildType = variant.buildType
-                def version = output.versionName.get() // <-- PERBAIKAN DI SINI
+                def version = output.versionName.get()
                 def buildNumber = System.getenv("BUILD_NUMBER") ?: "local"
 
                 def buildTypeName = buildType
@@ -218,7 +211,7 @@ android {
                 }
                 
                 def newFileName = "${appName}-${flavor}-${buildTypeName}-v${version}-build${buildNumber}.apk"
-                output.outputFileName.set(newFileName) // <-- PERBAIKAN DI SINI
+                output.outputFileName.set(newFileName)
             }
         })
     }
