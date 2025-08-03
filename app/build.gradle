@@ -132,12 +132,12 @@ android {
     }
     
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_1.8
+        targetCompatibility JavaVersion.VERSION_1.8
     }
     
     kotlinOptions {
-        jvmTarget = '17'
+        jvmTarget = '1.8'
     }
     
     buildFeatures {
@@ -242,10 +242,11 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2'
     
     // Root utilities with libsu (pro flavor only)
-    proImplementation 'com.github.topjohnwu.libsu:core:5.0.5'
-    proImplementation 'com.github.topjohnwu.libsu:service:5.0.5'
-    proImplementation 'com.github.topjohnwu.libsu:io:5.0.5'
-    proImplementation 'com.github.topjohnwu.libsu:busybox:5.0.5'
+    def libsuVersion = '6.0.0'
+    proImplementation "com.github.topjohnwu.libsu:core:${libsuVersion}"
+    proImplementation "com.github.topjohnwu.libsu:service:${libsuVersion}"
+    proImplementation "com.github.topjohnwu.libsu:nio:${libsuVersion}"
+
     
     // Remove LSPosed dependencies (too complex)
     
