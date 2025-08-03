@@ -98,21 +98,20 @@ jobs:
     
     - name: Fix Compose Version
       run: |
-        echo "=== Checking and Fixing Compose Version ==="
-        cd android
+        echo "=== Fixing Compose Version ==="
         
-        # Check current compose version
+        # Update compose version in gradle.properties (now in root)
         if [ -f gradle.properties ]; then
-          echo "Current gradle.properties compose version:"
+          echo "Current compose version:"
           grep compose_version gradle.properties || echo "No compose_version found"
           
           # Update to compatible version
           sed -i 's/compose_version=.*/compose_version=1.6.8/' gradle.properties
           
-          echo "Updated gradle.properties:"
+          echo "✅ Updated compose_version to 1.6.8"
           grep compose_version gradle.properties
         else
-          echo "gradle.properties not found in android directory!"
+          echo "❌ gradle.properties not found!"
           exit 1
         fi
     
