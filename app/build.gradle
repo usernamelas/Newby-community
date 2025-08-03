@@ -198,7 +198,7 @@ android {
                 def appName = "PoolAssistant"
                 def flavor = variant.flavorName.capitalize()
                 def buildType = variant.buildType
-                def version = variant.versionName.get() // <-- PERBAIKAN DI SINI
+                def version = output.versionName.get() // <-- PERBAIKAN DI SINI
                 def buildNumber = System.getenv("BUILD_NUMBER") ?: "local"
 
                 def buildTypeName = buildType
