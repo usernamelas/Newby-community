@@ -6,6 +6,9 @@ import android.content.SharedPreferences;
 /**
  * App Configuration Constants and Settings
  */
+public static final String VERSION_NAME = "2.0.0";  
+public static final int VERSION_CODE = 20000;
+ 
 public class AppConfig {
     
     // App Info

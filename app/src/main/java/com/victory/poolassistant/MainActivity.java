@@ -16,15 +16,16 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.snackbar.Snackbar;
 import com.victory.poolassistant.core.AppConfig;
 import com.victory.poolassistant.core.Logger;
-import com.victory.poolassistant.databinding.ActivityMainBinding;
 import com.victory.poolassistant.ui.fragments.HomeFragment;
 import com.victory.poolassistant.ui.fragments.SettingsFragment;
 import com.victory.poolassistant.ui.fragments.AboutFragment;
@@ -41,8 +42,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private static final String TAG = "MainActivity";
     private static final int REQUEST_OVERLAY_PERMISSION = 1001;
     
-    // UI Components
-    private ActivityMainBinding binding;
+    // UI Components (Fixed - no ViewBinding)
+    private DrawerLayout drawerLayout;
+    private NavigationView navView;
+    private androidx.appcompat.widget.Toolbar toolbar;
+    private FloatingActionButton fab;
+    private CoordinatorLayout coordinatorLayout;
     private ActionBarDrawerToggle toggle;
     private Handler uiHandler;
     
@@ -89,9 +94,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         // Get theme manager
         themeManager = app.getThemeManager();
         
-        // Initialize view binding
-        binding = ActivityMainBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
+        // Set content view (Fixed - no ViewBinding)
+        setContentView(R.layout.activity_main);
+        
+        // Initialize views manually
+        drawerLayout = findViewById(R.id.drawer_layout);
+        navView = findViewById(R.id.nav_view);
+        toolbar = findViewById(R.id.toolbar);
+        fab = findViewById(R.id.fab);
+        coordinatorLayout = findViewById(R.id.coordinator_layout);
         
         Logger.d(TAG, "Components initialized");
     }
@@ -101,7 +112,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
      */
     private void setupUI() {
         // Setup toolbar
-        setSupportActionBar(binding.toolbar);
+        setSupportActionBar(toolbar);
         
         // Setup navigation drawer
         setupNavigationDrawer();
@@ -121,15 +132,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private void setupNavigationDrawer() {
         // Setup drawer toggle
         toggle = new ActionBarDrawerToggle(
-            this, binding.drawerLayout, binding.toolbar,
+            this, drawerLayout, toolbar,
             R.string.navigation_drawer_open, R.string.navigation_drawer_close
         );
         
-        binding.drawerLayout.addDrawerListener(toggle);
+        drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
         
         // Setup navigation view
-        binding.navView.setNavigationItemSelectedListener(this);
+        navView.setNavigationItemSelectedListener(this);
         
         // Update header info
         updateNavigationHeader();
@@ -139,7 +150,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
      * Setup floating action button
      */
     private void setupFloatingActionButton() {
-        binding.fab.setOnClickListener(view -> {
+        fab.setOnClickListener(view -> {
             if (permissionsGranted) {
                 toggleOverlayService();
             } else {
@@ -155,7 +166,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
      * Update navigation header with app info
      */
     private void updateNavigationHeader() {
-        View headerView = binding.navView.getHeaderView(0);
+        View headerView = navView.getHeaderView(0);
         
         // Update version info, theme, etc.
         // Will be implemented when we create the header layout
@@ -302,7 +313,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private void animateFab(boolean loading) {
         if (loading) {
             // Start rotation animation
-            binding.fab.animate()
+            fab.animate()
                 .rotation(360)
                 .setDuration(1000)
                 .setInterpolator(new AccelerateDecelerateInterpolator())
@@ -313,8 +324,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 });
         } else {
             // Stop animation
-            binding.fab.animate().cancel();
-            binding.fab.setRotation(0);
+            fab.animate().cancel();
+            fab.setRotation(0);
         }
     }
     
@@ -323,11 +334,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
      */
     private void updateFabState() {
         if (isOverlayServiceRunning) {
-            binding.fab.setImageResource(R.drawable.ic_stop);
-            binding.fab.setBackgroundTintList(getColorStateList(R.color.color_error));
+            fab.setImageResource(R.drawable.ic_stop);
+            fab.setBackgroundTintList(getColorStateList(R.color.color_error));
         } else {
-            binding.fab.setImageResource(R.drawable.ic_play_arrow);
-            binding.fab.setBackgroundTintList(getColorStateList(R.color.color_primary));
+            fab.setImageResource(R.drawable.ic_play_arrow);
+            fab.setBackgroundTintList(getColorStateList(R.color.color_primary));
         }
     }
     
@@ -364,7 +375,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
      * Show snackbar message
      */
     private void showSnackbar(String message, boolean isError) {
-        Snackbar snackbar = Snackbar.make(binding.coordinatorLayout, message, Snackbar.LENGTH_LONG);
+        Snackbar snackbar = Snackbar.make(coordinatorLayout, message, Snackbar.LENGTH_LONG);
         
         if (isError) {
             snackbar.setBackgroundTint(getColor(R.color.color_error));
@@ -409,7 +420,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             loadFragment(new AboutFragment(), "about", "About");
         }
         
-        binding.drawerLayout.closeDrawer(GravityCompat.START);
+        drawerLayout.closeDrawer(GravityCompat.START);
         return true;
     }
     
@@ -430,8 +441,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     
     @Override
     public void onBackPressed() {
-        if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
-            binding.drawerLayout.closeDrawer(GravityCompat.START);
+        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawer(GravityCompat.START);
         } else {
             super.onBackPressed();
         }
