@@ -218,7 +218,7 @@ android {
                 }
                 
                 def newFileName = "${appName}-${flavor}-${buildTypeName}-v${version}-build${buildNumber}.apk"
-                output.outputFileName = newFileName
+                output.outputFileName.set(newFileName) // <-- PERBAIKAN DI SINI
             }
         })
     }
