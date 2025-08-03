@@ -45,3 +45,12 @@ jobs:
         echo "- Removed artifacts older than $CLEANUP_AGE days"
         echo "- Kept $KEEP_RECENT most recent artifacts"
         echo "- Kept 10 most recent releases"
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x ./gradlew
+
+    - name: Clean project
+      run: ./gradlew clean
+
+    - name: Build project
+      run: ./gradlew build
