@@ -137,29 +137,51 @@ jobs:
         echo "flavor=$FLAVOR" >> $GITHUB_OUTPUT
 
     - name: Setup keystore
-      if: steps.config.outputs.build_type == 'release'
-      env:
+    if: steps.config.outputs.build_type == 'release'
+    env:
         KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-      run: |
+    run: |
         if [ -n "$KEYSTORE_BASE64" ]; then
-          echo "$KEYSTORE_BASE64" | base64 -d > app/release.keystore
-          echo "RELEASE_STORE_FILE=release.keystore" >> gradle.properties
-          echo "RELEASE_STORE_PASSWORD=$KEYSTORE_PASSWORD" >> gradle.properties
-          echo "RELEASE_KEY_ALIAS=$KEY_ALIAS" >> gradle.properties
-          echo "RELEASE_KEY_PASSWORD=$KEY_PASSWORD" >> gradle.properties
+            echo "$KEYSTORE_BASE64" | base64 -d > app/release.keystore
+      # Gunakan path absolut atau relatif yang benar
+            echo "RELEASE_STORE_FILE=app/release.keystore" >> gradle.properties
+            echo "RELEASE_STORE_PASSWORD=$KEYSTORE_PASSWORD" >> gradle.properties
+            echo "RELEASE_KEY_ALIAS=$KEY_ALIAS" >> gradle.properties
+            echo "RELEASE_KEY_PASSWORD=$KEY_PASSWORD" >> gradle.properties
+      
+      # Verify keystore berhasil dibuat
+        ls -la app/release.keystore
+            echo "Keystore setup completed"
+        else
+            echo "No keystore found, building unsigned APK"
         fi
 
     - name: Verify Build Configuration
-      run: |
-        echo "=== Environment Check ==="
+    run: |
+            echo "=== Environment Check ==="
         java -version
         ./gradlew --version
+    
+            echo "=== Gradle Properties Check ==="
+        if [ -f gradle.properties ]; then
+            echo "gradle.properties exists"
+      # Jangan tampilkan password, hanya cek keberadaan
+            grep -E "RELEASE_STORE_FILE|RELEASE_KEY_ALIAS" gradle.properties || echo "Keystore properties not found"
+        fi
+    
+            echo "=== Keystore File Check ==="
+        if [ -f app/release.keystore ]; then
+            echo "✅ Keystore file exists"
+            ls -la app/release.keystore
+        else
+            echo "❌ Keystore file not found"
+        fi
 
-        echo "=== Available Build Variants in :app Module ==="
-        ./gradlew :app:tasks --all | grep -E "(assemble|build)" | head -40
+            echo "=== Available Build Variants ==="
+            ./gradlew :app:tasks --all | grep -E "(assemble|build)" | head -20
 
     - name: Build APK
       run: |
@@ -206,6 +228,16 @@ jobs:
           find . -path "*/build/outputs/*" -name "*.apk" || echo "No APK in build outputs"
           exit 1
         fi
+        
+        
+    - name: Cleanup keystore
+    if: always()
+    run: |
+        if [ -f app/release.keystore ]; then
+            rm -f app/release.keystore
+            echo "Keystore cleaned up"
+        fi
+        
 
     - name: Generate build info
       run: |
