@@ -242,10 +242,10 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2'
     
     // Root utilities with libsu (pro flavor only)
-    proImplementation 'com.github.topjohnwu.libsu:core:5.0.4'
-    proImplementation 'com.github.topjohnwu.libsu:service:5.0.4'
-    proImplementation 'com.github.topjohnwu.libsu:io:5.0.4'
-    proImplementation 'com.github.topjohnwu.libsu:busybox:5.0.4'
+    proImplementation 'com.github.topjohnwu.libsu:core:5.0.5'
+    proImplementation 'com.github.topjohnwu.libsu:service:5.0.5'
+    proImplementation 'com.github.topjohnwu.libsu:io:5.0.5'
+    proImplementation 'com.github.topjohnwu.libsu:busybox:5.0.5'
     
     // Remove LSPosed dependencies (too complex)
     
