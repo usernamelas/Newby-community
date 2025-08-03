@@ -403,7 +403,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             loadFragment(new HomeFragment(), "home", "Pool Assistant");
         } else if (id == R.id.nav_settings) {
             loadFragment(new SettingsFragment(), "settings", "Settings");
-        } else if (id == R.id.nav_stats) {
+        } else if (id == R.id.nav_statistics) {
             loadFragment(new StatsFragment(), "stats", "Statistics");
         } else if (id == R.id.nav_about) {
             loadFragment(new AboutFragment(), "about", "About");
