@@ -28,7 +28,12 @@ android {
         buildConfigField "String", "GIT_COMMIT", "\"${getGitCommit()}\""
     }
     
-    
+    signingConfigs {
+        debug {
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
         
         release {
             // Load keystore info from gradle.properties or environment
