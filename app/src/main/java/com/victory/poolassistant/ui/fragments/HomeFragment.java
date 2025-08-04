@@ -5,16 +5,21 @@ import android.os.Handler;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
+import com.google.android.material.card.MaterialCardView;
 import com.victory.poolassistant.BuildConfig;
+import com.victory.poolassistant.MainActivity;
 import com.victory.poolassistant.PoolAssistantApplication;
 import com.victory.poolassistant.R;
 import com.victory.poolassistant.core.AppConfig;
 import com.victory.poolassistant.core.Logger;
-import com.victory.poolassistant.databinding.FragmentHomeBinding;
 import com.victory.poolassistant.utils.RootManager;
 
 /**
@@ -24,7 +29,25 @@ public class HomeFragment extends Fragment {
     
     private static final String TAG = "HomeFragment";
     
-    private FragmentHomeBinding binding;
+    // UI Components (No ViewBinding)
+    private MaterialCardView cardSystemStatus;
+    private MaterialCardView cardGameDetection;
+    private MaterialCardView cardRootStatus;
+    private MaterialCardView cardSettings;
+    private MaterialCardView cardStatistics;
+    private MaterialCardView cardAbout;
+    private MaterialCardView cardHelp;
+    
+    private TextView tvSystemStatus;
+    private TextView tvDetectionStatus;
+    private TextView tvRootStatus;
+    private ImageView ivSystemStatusIcon;
+    private ImageView ivDetectionStatusIcon;
+    private ImageView ivRootStatusIcon;
+    private View indicatorSystemStatus;
+    private View indicatorDetectionStatus;
+    private View indicatorRootStatus;
+    
     private Handler uiHandler;
     private PoolAssistantApplication app;
     
@@ -46,14 +69,15 @@ public class HomeFragment extends Fragment {
     
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        binding = FragmentHomeBinding.inflate(inflater, container, false);
-        return binding.getRoot();
+        // No ViewBinding - use regular inflate
+        return inflater.inflate(R.layout.fragment_home, container, false);
     }
     
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         
+        initializeViews(view);
         setupUI();
         checkSystemStatus();
         startStatusUpdates();
@@ -62,26 +86,69 @@ public class HomeFragment extends Fragment {
     }
     
     /**
+     * Initialize views manually (No ViewBinding)
+     */
+    private void initializeViews(View view) {
+        // Status cards
+        cardSystemStatus = view.findViewById(R.id.card_system_status);
+        cardGameDetection = view.findViewById(R.id.card_game_detection);
+        cardRootStatus = view.findViewById(R.id.card_root_status);
+        
+        // Navigation cards
+        cardSettings = view.findViewById(R.id.card_settings);
+        cardStatistics = view.findViewById(R.id.card_statistics);
+        cardAbout = view.findViewById(R.id.card_about);
+        cardHelp = view.findViewById(R.id.card_help);
+        
+        // Status text views
+        tvSystemStatus = view.findViewById(R.id.tv_system_status);
+        tvDetectionStatus = view.findViewById(R.id.tv_detection_status);
+        tvRootStatus = view.findViewById(R.id.tv_root_status);
+        
+        // Status icons
+        ivSystemStatusIcon = view.findViewById(R.id.iv_system_status_icon);
+        ivDetectionStatusIcon = view.findViewById(R.id.iv_detection_status_icon);
+        ivRootStatusIcon = view.findViewById(R.id.iv_root_status_icon);
+        
+        // Status indicators
+        indicatorSystemStatus = view.findViewById(R.id.indicator_system_status);
+        indicatorDetectionStatus = view.findViewById(R.id.indicator_detection_status);
+        indicatorRootStatus = view.findViewById(R.id.indicator_root_status);
+    }
+    
+    /**
      * Setup UI components and click listeners
      */
     private void setupUI() {
-        // Setup click listeners for status cards
-        binding.cardSystemStatus.setOnClickListener(v -> showSystemStatusDialog());
-        binding.cardGameDetection.setOnClickListener(v -> refreshGameDetection());
-        
-        // Setup root status card (only show for pro version)
-        if (BuildConfig.ROOT_FEATURES) {
-            binding.cardRootStatus.setVisibility(View.VISIBLE);
-            binding.cardRootStatus.setOnClickListener(v -> showRootStatusDialog());
-        } else {
-            binding.cardRootStatus.setVisibility(View.GONE);
+        // Setup click listeners for status cards (if exist)
+        if (cardSystemStatus != null) {
+            cardSystemStatus.setOnClickListener(v -> showSystemStatusDialog());
+        }
+        if (cardGameDetection != null) {
+            cardGameDetection.setOnClickListener(v -> refreshGameDetection());
         }
         
-        // Setup quick action cards
-        binding.cardSettings.setOnClickListener(v -> openSettings());
-        binding.cardStatistics.setOnClickListener(v -> openStatistics());
-        binding.cardAbout.setOnClickListener(v -> openAbout());
-        binding.cardHelp.setOnClickListener(v -> openHelp());
+        // Setup root status card (only show for pro version)
+        if (BuildConfig.ROOT_FEATURES && cardRootStatus != null) {
+            cardRootStatus.setVisibility(View.VISIBLE);
+            cardRootStatus.setOnClickListener(v -> showRootStatusDialog());
+        } else if (cardRootStatus != null) {
+            cardRootStatus.setVisibility(View.GONE);
+        }
+        
+        // Setup quick action cards with REAL navigation
+        if (cardSettings != null) {
+            cardSettings.setOnClickListener(v -> openSettings());
+        }
+        if (cardStatistics != null) {
+            cardStatistics.setOnClickListener(v -> openStatistics());
+        }
+        if (cardAbout != null) {
+            cardAbout.setOnClickListener(v -> openAbout());
+        }
+        if (cardHelp != null) {
+            cardHelp.setOnClickListener(v -> openHelp());
+        }
         
         Logger.d(TAG, "UI components setup completed");
     }
@@ -109,20 +176,20 @@ public class HomeFragment extends Fragment {
      */
     private void startStatusUpdates() {
         // Update status every 2 seconds
-        uiHandler.postDelayed(statusUpdaterunnable, 2000);
+        uiHandler.postDelayed(statusUpdateRunnable, 2000);
     }
     
     /**
      * Stop status updates
      */
     private void stopStatusUpdates() {
-        uiHandler.removeCallbacks(statusUpdaterunnable);
+        uiHandler.removeCallbacks(statusUpdateRunnable);
     }
     
     /**
      * Status update runnable
      */
-    private final Runnable statusUpdaterunnable = new Runnable() {
+    private final Runnable statusUpdateRunnable = new Runnable() {
         @Override
         public void run() {
             // Simulate game detection (replace with actual detection)
@@ -139,8 +206,6 @@ public class HomeFragment extends Fragment {
      * Update status UI elements
      */
     private void updateStatusUI() {
-        if (binding == null) return;
-        
         // Update system status
         updateSystemStatusCard();
         
@@ -157,16 +222,26 @@ public class HomeFragment extends Fragment {
      * Update system status card
      */
     private void updateSystemStatusCard() {
+        if (tvSystemStatus == null) return;
+        
         if (overlayServiceRunning) {
-            binding.tvSystemStatus.setText(R.string.status_active);
-            binding.indicatorSystemStatus.setBackgroundTintList(
-                requireContext().getColorStateList(R.color.status_active));
-            binding.ivSystemStatusIcon.setImageResource(R.drawable.ic_check_circle);
+            tvSystemStatus.setText("Active");
+            if (indicatorSystemStatus != null) {
+                indicatorSystemStatus.setBackgroundTintList(
+                    requireContext().getColorStateList(R.color.status_active));
+            }
+            if (ivSystemStatusIcon != null) {
+                ivSystemStatusIcon.setImageResource(R.drawable.ic_check_circle);
+            }
         } else {
-            binding.tvSystemStatus.setText(R.string.status_ready);
-            binding.indicatorSystemStatus.setBackgroundTintList(
-                requireContext().getColorStateList(R.color.status_ready));
-            binding.ivSystemStatusIcon.setImageResource(R.drawable.ic_system);
+            tvSystemStatus.setText("Ready");
+            if (indicatorSystemStatus != null) {
+                indicatorSystemStatus.setBackgroundTintList(
+                    requireContext().getColorStateList(R.color.status_ready));
+            }
+            if (ivSystemStatusIcon != null) {
+                ivSystemStatusIcon.setImageResource(R.drawable.ic_system);
+            }
         }
     }
     
@@ -174,16 +249,26 @@ public class HomeFragment extends Fragment {
      * Update game detection card
      */
     private void updateGameDetectionCard() {
+        if (tvDetectionStatus == null) return;
+        
         if (gameDetected) {
-            binding.tvDetectionStatus.setText(R.string.status_game_detected);
-            binding.indicatorDetectionStatus.setBackgroundTintList(
-                requireContext().getColorStateList(R.color.status_active));
-            binding.ivDetectionStatusIcon.setImageResource(R.drawable.ic_check_circle);
+            tvDetectionStatus.setText("Game Detected");
+            if (indicatorDetectionStatus != null) {
+                indicatorDetectionStatus.setBackgroundTintList(
+                    requireContext().getColorStateList(R.color.status_active));
+            }
+            if (ivDetectionStatusIcon != null) {
+                ivDetectionStatusIcon.setImageResource(R.drawable.ic_check_circle);
+            }
         } else {
-            binding.tvDetectionStatus.setText(R.string.status_scanning);
-            binding.indicatorDetectionStatus.setBackgroundTintList(
-                requireContext().getColorStateList(R.color.status_scanning));
-            binding.ivDetectionStatusIcon.setImageResource(R.drawable.ic_detection);
+            tvDetectionStatus.setText("Scanning");
+            if (indicatorDetectionStatus != null) {
+                indicatorDetectionStatus.setBackgroundTintList(
+                    requireContext().getColorStateList(R.color.status_scanning));
+            }
+            if (ivDetectionStatusIcon != null) {
+                ivDetectionStatusIcon.setImageResource(R.drawable.ic_detection);
+            }
         }
     }
     
@@ -191,16 +276,26 @@ public class HomeFragment extends Fragment {
      * Update root status card (pro version only)
      */
     private void updateRootStatusCard() {
+        if (tvRootStatus == null) return;
+        
         if (rootAvailable) {
-            binding.tvRootStatus.setText(R.string.status_root_available);
-            binding.indicatorRootStatus.setBackgroundTintList(
-                requireContext().getColorStateList(R.color.status_active));
-            binding.ivRootStatusIcon.setImageResource(R.drawable.ic_check_circle);
+            tvRootStatus.setText("Root Available");
+            if (indicatorRootStatus != null) {
+                indicatorRootStatus.setBackgroundTintList(
+                    requireContext().getColorStateList(R.color.status_active));
+            }
+            if (ivRootStatusIcon != null) {
+                ivRootStatusIcon.setImageResource(R.drawable.ic_check_circle);
+            }
         } else {
-            binding.tvRootStatus.setText(R.string.status_root_unavailable);
-            binding.indicatorRootStatus.setBackgroundTintList(
-                requireContext().getColorStateList(R.color.status_inactive));
-            binding.ivRootStatusIcon.setImageResource(R.drawable.ic_root);
+            tvRootStatus.setText("Root Unavailable");
+            if (indicatorRootStatus != null) {
+                indicatorRootStatus.setBackgroundTintList(
+                    requireContext().getColorStateList(R.color.status_inactive));
+            }
+            if (ivRootStatusIcon != null) {
+                ivRootStatusIcon.setImageResource(R.drawable.ic_root);
+            }
         }
     }
     
@@ -219,7 +314,7 @@ public class HomeFragment extends Fragment {
     private void showSystemStatusDialog() {
         String message = "Overlay Service: " + (overlayServiceRunning ? "Running" : "Stopped") + "\n" +
                         "Permissions: " + (permissionsGranted ? "Granted" : "Required") + "\n" +
-                        "Version: " + BuildConfig.VERSION_NAME;
+                        "Version: " + AppConfig.VERSION_NAME;
         
         new android.app.AlertDialog.Builder(requireContext())
             .setTitle("System Status")
@@ -267,27 +362,24 @@ public class HomeFragment extends Fragment {
     }
     
     /**
-     * Open settings
+     * Open settings - REAL NAVIGATION
      */
     private void openSettings() {
-        // Will be implemented when SettingsFragment is created
-        Toast.makeText(requireContext(), "Settings - Coming soon", Toast.LENGTH_SHORT).show();
+        navigateToFragment(new SettingsFragment(), "Settings");
     }
     
     /**
-     * Open statistics
+     * Open statistics - REAL NAVIGATION
      */
     private void openStatistics() {
-        // Will be implemented when StatsFragment is created
-        Toast.makeText(requireContext(), "Statistics - Coming soon", Toast.LENGTH_SHORT).show();
+        navigateToFragment(new StatsFragment(), "Statistics");
     }
     
     /**
-     * Open about
+     * Open about - REAL NAVIGATION
      */
     private void openAbout() {
-        // Will be implemented when AboutFragment is created
-        Toast.makeText(requireContext(), "About - Coming soon", Toast.LENGTH_SHORT).show();
+        navigateToFragment(new AboutFragment(), "About");
     }
     
     /**
@@ -295,6 +387,27 @@ public class HomeFragment extends Fragment {
      */
     private void openHelp() {
         Toast.makeText(requireContext(), "Help - Coming soon", Toast.LENGTH_SHORT).show();
+    }
+    
+    /**
+     * Navigate to fragment helper
+     */
+    private void navigateToFragment(Fragment fragment, String title) {
+        if (getActivity() instanceof MainActivity) {
+            FragmentManager fragmentManager = getActivity().getSupportFragmentManager();
+            FragmentTransaction transaction = fragmentManager.beginTransaction();
+            transaction.replace(R.id.fragment_container, fragment);
+            transaction.addToBackStack(null);
+            transaction.commit();
+            
+            // Update title
+            MainActivity mainActivity = (MainActivity) getActivity();
+            if (mainActivity.getSupportActionBar() != null) {
+                mainActivity.getSupportActionBar().setTitle(title);
+            }
+            
+            Logger.d(TAG, "Navigated to " + title);
+        }
     }
     
     @Override
@@ -316,7 +429,6 @@ public class HomeFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         stopStatusUpdates();
-        binding = null;
         Logger.d(TAG, "HomeFragment view destroyed");
     }
 }
