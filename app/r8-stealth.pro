@@ -65,3 +65,54 @@
 
 # Remove unnecessary metadata
 -keepattributes !SourceDir,!InnerClasses
+
+# ===== ADD THESE TO FIX R8 MISSING CLASSES ERROR =====
+
+# JSR-305 and javax.annotation (CRITICAL FIX)
+-dontwarn javax.annotation.**
+-dontwarn javax.annotation.Nullable
+-dontwarn javax.annotation.Nonnull
+-dontwarn javax.annotation.CheckForNull
+-dontwarn javax.annotation.ParametersAreNonnullByDefault
+
+# OKIO (used by libsu, causing the main error)
+-dontwarn okio.**
+-keep class okio.Buffer {
+    okio.Segment head;
+    <methods>;
+}
+-keep class okio.Segment {
+    <fields>;
+    <methods>;
+}
+
+# LibSU Root Framework (critical for Pro flavor)
+-dontwarn com.topjohnwu.superuser.**
+-keep class com.topjohnwu.superuser.Shell {
+    <methods>;
+}
+-keep class com.topjohnwu.superuser.internal.** { *; }
+
+# Additional missing classes that might cause issues
+-dontwarn java.lang.instrument.**
+-dontwarn sun.misc.Unsafe
+-dontwarn java.nio.file.**
+-dontwarn org.codehaus.mojo.animal_sniffer.**
+
+# Keep Pool Assistant core classes during stealth obfuscation
+-keep class com.victory.poolassistant.MainActivity {
+    protected void onCreate(android.os.Bundle);
+}
+-keep class com.victory.poolassistant.PoolAssistantApplication {
+    public void onCreate();
+}
+
+# Keep BuildConfig for runtime feature detection
+-keep class com.victory.poolassistant.BuildConfig {
+    public static final boolean ROOT_FEATURES;
+    public static final boolean LSPOSED_SUPPORT;
+    public static final boolean OBFUSCATED;
+    public static final boolean DEBUG_MODE;
+}
+
+# ===== END CRITICAL FIXES =====

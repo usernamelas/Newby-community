@@ -60,6 +60,45 @@
     boolean DEBUG return false;
 }
 
+# ===== ADD THESE NEW RULES TO FIX R8 ERROR =====
+
+# JSR-305 Annotations (javax.annotation) - FIX FOR MISSING CLASSES
+-dontwarn javax.annotation.**
+-dontwarn javax.annotation.Nullable
+-dontwarn javax.annotation.Nonnull
+-dontwarn javax.annotation.CheckForNull
+-dontwarn javax.annotation.ParametersAreNonnullByDefault
+-keep class javax.annotation.** { *; }
+
+# OKIO Library (used by libsu)
+-dontwarn okio.**
+-keep class okio.** { *; }
+-keep class okio.Buffer { *; }
+-keep class okio.Segment { *; }
+
+# LibSU Root Library (Pro flavor only)
+-dontwarn com.topjohnwu.superuser.**
+-keep class com.topjohnwu.superuser.** { *; }
+-keep interface com.topjohnwu.superuser.** { *; }
+
+# Keep Shell classes and methods
+-keep class * extends com.topjohnwu.superuser.Shell {
+    <init>(...);
+    <methods>;
+}
+
+# Keep BusyBoxInstaller
+-keep class * extends com.topjohnwu.superuser.BusyBoxInstaller { *; }
+
+# Handle missing optional dependencies
+-dontwarn java.lang.instrument.ClassFileTransformer
+-dontwarn sun.misc.Unsafe
+-dontwarn java.nio.file.Path
+-dontwarn java.nio.file.OpenOption
+-dontwarn org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement
+
+# ===== END NEW RULES =====
+
 # Gson specific rules
 -keepattributes Signature
 -keepattributes *Annotation*
