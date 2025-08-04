@@ -155,7 +155,7 @@ jobs:
         if [ -n "$KEYSTORE_BASE64" ]; then
           echo "$KEYSTORE_BASE64" | base64 -d > app/release.keystore
           # Gunakan path absolut atau relatif yang benar
-          echo "RELEASE_STORE_FILE=app/release.keystore" >> gradle.properties
+          echo "RELEASE_STORE_FILE=release.keystore" >> gradle.properties
           echo "RELEASE_STORE_PASSWORD=$KEYSTORE_PASSWORD" >> gradle.properties
           echo "RELEASE_KEY_ALIAS=$KEY_ALIAS" >> gradle.properties
           echo "RELEASE_KEY_PASSWORD=$KEY_PASSWORD" >> gradle.properties
