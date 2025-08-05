@@ -1,4 +1,4 @@
-name: Pool Assistant Build
+name: 🎱 Pool Assistant Build
 
 on:
   workflow_dispatch:
@@ -9,9 +9,9 @@ on:
         default: 'debug'
         type: choice
         options:
-          - debug
-          - beta
-          - release
+        - debug
+        - beta
+        - release
       
       flavor:
         description: 'App flavor'
@@ -19,12 +19,11 @@ on:
         default: 'standard'
         type: choice
         options:
-          - standard
-          - pro
+        - standard
+        - pro
 
   push:
     branches: 
-      - 'main'
       - 'termux-builds'
       - 'release/*'
     tags:
@@ -40,11 +39,8 @@ env:
 
 jobs:
   build:
-    name: Build APK
+    name: 🏗️ Build APK
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: .
     
     steps:
     - name: Checkout repository
@@ -59,60 +55,28 @@ jobs:
         distribution: 'temurin'
     
     - name: Setup Android SDK
-      run: |
-        echo "ANDROID_HOME: $ANDROID_HOME"
-        echo "Available SDK components:"
-        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --list_installed
-        
-        if ! $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --list_installed | grep -q "platforms;android-${{ env.ANDROID_API_LEVEL }}"; then
-          echo "Installing Android API ${{ env.ANDROID_API_LEVEL }}"
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-${{ env.ANDROID_API_LEVEL }}"
-        fi
-        
-        if ! $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --list_installed | grep -q "build-tools;${{ env.ANDROID_BUILD_TOOLS }}"; then
-          echo "Installing Build Tools ${{ env.ANDROID_BUILD_TOOLS }}"
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;${{ env.ANDROID_BUILD_TOOLS }}"
-        fi
-
-
-    - name: Setup Gradle Wrapper
-      run: |
-        echo "Current directory: $(pwd)"
-        ls -la
-        if [ -f gradlew ]; then
-          echo "gradlew found, making executable..."
-          chmod +x gradlew
-          ./gradlew --version
-        else
-          echo "gradlew not found!"
-          exit 1
-        fi
+      uses: android-actions/setup-android@v3
+      with:
+        api-level: ${{ env.ANDROID_API_LEVEL }}
+        build-tools: ${{ env.ANDROID_BUILD_TOOLS }}
     
-    - name: Fix Compose Version
-      run: |
-        echo "=== Fixing Compose Version ==="
-        
-        # Update compose version in gradle.properties (now in root)
-        if [ -f gradle.properties ]; then
-          echo "Current compose version:"
-          grep compose_version gradle.properties || echo "No compose_version found"
-          
-          # Update to compatible version
-          sed -i 's/compose_version=.*/compose_version=1.6.8/' gradle.properties
-          
-          echo "✅ Updated compose_version to 1.6.8"
-          grep compose_version gradle.properties
-        else
-          echo "❌ gradle.properties not found!"
-          exit 1
-        fi
+    - name: Cache Gradle dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+    
+    - name: Make gradlew executable
+      run: chmod +x gradlew
     
     - name: Determine build configuration
       id: config
       run: |
         BUILD_TYPE="debug"
         FLAVOR="standard"
-
+        
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
           BUILD_TYPE="${{ github.event.inputs.build_type }}"
           FLAVOR="${{ github.event.inputs.flavor }}"
@@ -126,188 +90,134 @@ jobs:
         
         echo "build_type=$BUILD_TYPE" >> $GITHUB_OUTPUT
         echo "flavor=$FLAVOR" >> $GITHUB_OUTPUT
+        
+        echo "🏗️  Build Configuration:"
+        echo "   Flavor: $FLAVOR"
+        echo "   Build Type: $BUILD_TYPE"
+    
+    # REMOVED: Setup keystore step - building unsigned
+    # - name: Setup keystore
+    #   if: steps.config.outputs.build_type == 'release'
+    #   ...
 
-    - name: Setup keystore
-      if: steps.config.outputs.build_type == 'release'
-      env:
-        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-      run: |
-        echo "🔧 DEFINITIVE KEYSTORE FIX"
-        echo "=========================="
-        
-        # SKIP CORRUPTED BASE64 - GENERATE FRESH KEYSTORE
-        echo "🔄 Generating fresh keystore (ignoring corrupted base64)..."
-        
-        # Generate new keystore with proper error handling
-        keytool -genkey -v \
-          -keystore app/release.keystore \
-          -storepass "${KEYSTORE_PASSWORD:-PoolAssistant2024!}" \
-          -alias "${KEY_ALIAS:-poolassistant}" \
-          -keypass "${KEY_PASSWORD:-PoolAssistant2024!}" \
-          -keyalg RSA \
-          -keysize 2048 \
-          -validity 25000 \
-          -dname "CN=Pool Assistant, OU=Victory Apps, O=Victory, L=Jakarta, ST=Jakarta, C=ID"
-        
-        if [ $? -eq 0 ]; then
-          echo "✅ Fresh keystore generated successfully"
-          
-          # Test the keystore immediately
-          echo "🧪 Testing fresh keystore..."
-          keytool -list -keystore app/release.keystore -storepass "${KEYSTORE_PASSWORD:-PoolAssistant2024!}" -v
-          
-          if [ $? -eq 0 ]; then
-            echo "✅ Fresh keystore is valid and working"
-            
-            # Clean gradle.properties first
-            if [ -f "gradle.properties" ]; then
-              # Remove any existing RELEASE_ properties
-              grep -v "^RELEASE_" gradle.properties > gradle.properties.tmp
-              mv gradle.properties.tmp gradle.properties
-            fi
-            
-            # Set properties
-            echo "RELEASE_STORE_FILE=release.keystore" >> gradle.properties
-            echo "RELEASE_STORE_PASSWORD=${KEYSTORE_PASSWORD:-PoolAssistant2024!}" >> gradle.properties
-            echo "RELEASE_KEY_ALIAS=${KEY_ALIAS:-poolassistant}" >> gradle.properties
-            echo "RELEASE_KEY_PASSWORD=${KEY_PASSWORD:-PoolAssistant2024!}" >> gradle.properties
-            
-            echo "✅ Gradle properties configured"
-            
-            # Final verification
-            echo "📋 Final keystore info:"
-            ls -la app/release.keystore
-            echo "📋 Gradle properties:"
-            grep "RELEASE_" gradle.properties
-            
-          else
-            echo "❌ Fresh keystore test failed"
-            exit 1
-          fi
-        else
-          echo "❌ Failed to generate fresh keystore"
-          exit 1
-        fi
-
-    - name: Verify Build Configuration
-      run: |
-        echo "=== Environment Check ==="
-        java -version
-        ./gradlew --version
-        
-        echo "=== Gradle Properties Check ==="
-        if [ -f gradle.properties ]; then
-          echo "gradle.properties exists"
-          # Jangan tampilkan password, hanya cek keberadaan
-          grep -E "RELEASE_STORE_FILE|RELEASE_KEY_ALIAS" gradle.properties || echo "Keystore properties not found"
-        fi
-        
-        echo "=== Keystore File Check ==="
-        if [ -f app/release.keystore ]; then
-          echo "✅ Keystore file exists"
-          ls -la app/release.keystore
-        else
-          echo "❌ Keystore file not found"
-        fi
-
-        echo "=== Available Build Variants ==="
-        ./gradlew :app:tasks --all | grep -E "(assemble|build)" | head -20
-
-    - name: Build APK
+    - name: Build unsigned APK
       run: |
         BUILD_TYPE="${{ steps.config.outputs.build_type }}"
         FLAVOR="${{ steps.config.outputs.flavor }}"
-
+        
+        # Capitalize for Gradle task
         FLAVOR_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOR:0:1})${FLAVOR:1}"
         BUILD_TYPE_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${BUILD_TYPE:0:1})${BUILD_TYPE:1}"
-
-        TASK=":app:assemble${FLAVOR_CAP}${BUILD_TYPE_CAP}"
-
-        echo "=== Building APK with task: $TASK ==="
-        ./gradlew $TASK --stacktrace
-
-    - name: Find and rename APK (Dynamic)
+        
+        echo "🔧 Building unsigned $FLAVOR_CAP $BUILD_TYPE_CAP APK..."
+        echo "   Command: ./gradlew assemble${FLAVOR_CAP}${BUILD_TYPE_CAP}"
+        
+        # Show build info before building
+        if [ "$FLAVOR" = "pro" ]; then
+          echo "🔐 PRO BUILD: R8 + ProGuard protection will be applied"
+        else
+          echo "📖 STANDARD BUILD: Clean build, no protection"
+        fi
+        
+        # Build APK (unsigned)
+        ./gradlew assemble${FLAVOR_CAP}${BUILD_TYPE_CAP} --stacktrace
+        
+        # Show build result
+        if [ $? -eq 0 ]; then
+          echo "✅ Build successful!"
+          echo "📦 APK files generated:"
+          find app/build/outputs/apk -name "*.apk" -type f | while read apk; do
+            echo "   📱 $apk"
+            ls -la "$apk"
+          done
+        else
+          echo "❌ Build failed!"
+          exit 1
+        fi
+    
+    - name: Run tests
+      if: steps.config.outputs.build_type != 'release'
+      run: |
+        FLAVOR_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${{ steps.config.outputs.flavor }}:0:1)${{ steps.config.outputs.flavor }}:1"
+        BUILD_TYPE_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${{ steps.config.outputs.build_type }}:0:1)${{ steps.config.outputs.build_type }}:1"
+        
+        echo "🧪 Running tests for $FLAVOR_CAP $BUILD_TYPE_CAP..."
+        ./gradlew test${FLAVOR_CAP}${BUILD_TYPE_CAP}UnitTest --continue
+    
+    - name: Find and rename APK
       id: apk
       run: |
-        echo "=== Looking for APK files ==="
-        find . -name "*.apk" -type f | head -10
+        BUILD_TYPE="${{ steps.config.outputs.build_type }}"
+        FLAVOR="${{ steps.config.outputs.flavor }}"
         
-        APK_FILE=$(find . -name "*.apk" -type f | head -1)
+        # Find APK file
+        APK_PATH="app/build/outputs/apk/$FLAVOR/$BUILD_TYPE"
+        APK_FILE=$(find $APK_PATH -name "*.apk" | head -1)
         
         if [ -f "$APK_FILE" ]; then
-          echo "Found APK: $APK_FILE"
-          
-          APK_SIZE=$(du -h "$APK_FILE" | cut -f1)
+          # Create new name with unsigned suffix
+          VERSION_NAME=$(grep "versionName" app/build.gradle | sed 's/.*"\(.*\)".*/\1/')
           BUILD_NUMBER=${{ github.run_number }}
-
-          ORIGINAL_NAME=$(basename "$APK_FILE")
-          NEW_NAME="PoolAssistant-build$BUILD_NUMBER-$ORIGINAL_NAME"
           
-          APK_DIR=$(dirname "$APK_FILE")
-          NEW_PATH="$APK_DIR/$NEW_NAME"
+          # Add protection info to filename
+          if [ "$FLAVOR" = "pro" ]; then
+            PROTECTION_SUFFIX="-Protected"
+          else
+            PROTECTION_SUFFIX="-Clean"
+          fi
           
+          NEW_NAME="PoolAssistant-$FLAVOR-$BUILD_TYPE$PROTECTION_SUFFIX-v$VERSION_NAME-build$BUILD_NUMBER-unsigned.apk"
+          
+          # Rename file
+          NEW_PATH="$APK_PATH/$NEW_NAME"
           mv "$APK_FILE" "$NEW_PATH"
           
           echo "apk_path=$NEW_PATH" >> $GITHUB_OUTPUT
           echo "apk_name=$NEW_NAME" >> $GITHUB_OUTPUT
+          
+          # Get file size
+          APK_SIZE=$(du -h "$NEW_PATH" | cut -f1)
           echo "apk_size=$APK_SIZE" >> $GITHUB_OUTPUT
           
-          echo "APK renamed to: $NEW_PATH"
+          echo "✅ APK renamed: $NEW_NAME"
         else
-          echo "No APK file found!"
-          find . -path "*/build/outputs/*" -name "*.apk" || echo "No APK in build outputs"
-          exit 1
+          echo "❌ APK file not found in $APK_PATH"
         fi
-        
-    - name: Cleanup keystore
-      if: always()
-      run: |
-        if [ -f app/release.keystore ]; then
-          rm -f app/release.keystore
-          echo "Keystore cleaned up"
-        fi
-
+    
     - name: Generate build info
       run: |
-        FLAVOR="${{ steps.config.outputs.flavor }}"
-        BUILD_TYPE="${{ steps.config.outputs.build_type }}"
-        if [ "$FLAVOR" = "pro" ]; then
-          ROOT_SUPPORT="Yes"
-          LIBSU_INTEGRATION="Yes"
-        else
-          ROOT_SUPPORT="No"
-          LIBSU_INTEGRATION="No"
-        fi
-        if [ "$BUILD_TYPE" = "release" ]; then
-          R8_OBFUSCATION="Yes"
-        else
-          R8_OBFUSCATION="No"
-        fi
-        VERSION_NAME=$(grep "versionName" app/build.gradle | sed 's/.*"\(.*\)".*/\1/')
+        cat > build_info.txt << EOF
+📱 Pool Assistant Build Info
+============================
 
-        echo "Pool Assistant Build Info" > build_info.txt
-        echo "" >> build_info.txt
-        echo "Build Details:" >> build_info.txt
-        echo "• Flavor: $FLAVOR" >> build_info.txt
-        echo "• Build Type: $BUILD_TYPE" >> build_info.txt
-        echo "• Version: $VERSION_NAME" >> build_info.txt
-        echo "• Build Number: ${{ github.run_number }}" >> build_info.txt
-        echo "• Commit: $(git rev-parse --short HEAD)" >> build_info.txt
-        echo "• Build Time: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> build_info.txt
-        echo "" >> build_info.txt
-        echo "APK Details:" >> build_info.txt
-        echo "• File: ${{ steps.apk.outputs.apk_name }}" >> build_info.txt
-        echo "• Size: ${{ steps.apk.outputs.apk_size }}" >> build_info.txt
-        echo "• Min SDK: 24 (Android 7.0)" >> build_info.txt
-        echo "• Target SDK: 34 (Android 14)" >> build_info.txt
-        echo "" >> build_info.txt
-        echo "Features:" >> build_info.txt
-        echo "• Root Support: $ROOT_SUPPORT" >> build_info.txt
-        echo "• libsu Integration: $LIBSU_INTEGRATION" >> build_info.txt
-        echo "• R8 Obfuscation: $R8_OBFUSCATION" >> build_info.txt
+🏷️ Build Details:
+• Flavor: ${{ steps.config.outputs.flavor }}
+• Build Type: ${{ steps.config.outputs.build_type }}
+• Version: $(grep "versionName" app/build.gradle | sed 's/.*"\(.*\)".*/\1/')
+• Build Number: ${{ github.run_number }}
+• Commit: $(git rev-parse --short HEAD)
+• Build Time: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
 
+📦 APK Details:
+• File: ${{ steps.apk.outputs.apk_name }}
+• Size: ${{ steps.apk.outputs.apk_size }}
+• Signed: No (Unsigned for development)
+• Min SDK: 24 (Android 7.0)
+• Target SDK: 34 (Android 14)
+
+🔧 Features:
+• Root Support: Yes (libsu)
+• LSPosed Support: No (using libsu instead)
+• R8 Obfuscation: ${{ steps.config.outputs.flavor == 'pro' && 'Yes (Protected)' || 'No (Clean)' }}
+• ProGuard: ${{ steps.config.outputs.flavor == 'pro' && 'Yes (r8-stealth.pro)' || 'No' }}
+
+📋 Build Notes:
+• Both Pro and Standard have same features
+• Pro = Protected (R8 + ProGuard obfuscation)
+• Standard = Clean (no obfuscation, easy debugging)
+• Unsigned APK - can be installed for testing
+EOF
+    
     - name: Upload APK
       if: steps.apk.outputs.apk_path != ''
       uses: actions/upload-artifact@v4
@@ -315,14 +225,14 @@ jobs:
         name: ${{ steps.apk.outputs.apk_name }}
         path: ${{ steps.apk.outputs.apk_path }}
         retention-days: 30
-
+    
     - name: Upload build info
       uses: actions/upload-artifact@v4
       with:
         name: build-info-${{ steps.config.outputs.flavor }}-${{ steps.config.outputs.build_type }}
         path: build_info.txt
         retention-days: 7
-
+    
     - name: Create Release
       if: startsWith(github.ref, 'refs/tags/v') && steps.config.outputs.build_type == 'release'
       uses: softprops/action-gh-release@v1
@@ -333,3 +243,8 @@ jobs:
         prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    # REMOVED: Cleanup keystore step - not needed for unsigned builds
+    # - name: Cleanup keystore
+    #   if: always()
+    #   ...
