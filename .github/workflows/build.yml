@@ -134,6 +134,8 @@ jobs:
           echo "❌ Build failed!"
           exit 1
         fi
+        
+        
     
     - name: Run tests
       if: steps.config.outputs.build_type != 'release'
