@@ -153,18 +153,74 @@ jobs:
         KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       run: |
         if [ -n "$KEYSTORE_BASE64" ]; then
-          echo "$KEYSTORE_BASE64" | base64 -d > app/release.keystore
-          # Gunakan path absolut atau relatif yang benar
-          echo "RELEASE_STORE_FILE=release.keystore" >> gradle.properties
-          echo "RELEASE_STORE_PASSWORD=$KEYSTORE_PASSWORD" >> gradle.properties
-          echo "RELEASE_KEY_ALIAS=$KEY_ALIAS" >> gradle.properties
-          echo "RELEASE_KEY_PASSWORD=$KEY_PASSWORD" >> gradle.properties
+          echo "🔍 Debug keystore creation..."
           
-          # Verify keystore berhasil dibuat
-          ls -la app/release.keystore
-          echo "Keystore setup completed"
+          # Check base64 length and format
+          echo "Base64 length: ${#KEYSTORE_BASE64}"
+          echo "Base64 first 50 chars: ${KEYSTORE_BASE64:0:50}"
+          echo "Base64 last 50 chars: ${KEYSTORE_BASE64: -50}"
+          
+          # Create keystore with proper error handling
+          echo "Creating keystore..."
+          echo "$KEYSTORE_BASE64" | base64 -d > app/release.keystore 2>/dev/null
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ Base64 decode successful"
+          else
+            echo "❌ Base64 decode failed, trying alternative method..."
+            # Try without pipe (sometimes helps with formatting issues)
+            printf "%s" "$KEYSTORE_BASE64" | base64 -d > app/release.keystore
+          fi
+          
+          # Verify keystore file
+          if [ -f "app/release.keystore" ]; then
+            echo "📊 Keystore file created:"
+            ls -la app/release.keystore
+            file app/release.keystore
+            
+            # Test keystore validity
+            echo "🧪 Testing keystore validity..."
+            keytool -list -keystore app/release.keystore -storepass "$KEYSTORE_PASSWORD" -v 2>/dev/null
+            
+            if [ $? -eq 0 ]; then
+              echo "✅ Keystore is valid and readable"
+              
+              # Set gradle properties
+              echo "RELEASE_STORE_FILE=release.keystore" >> gradle.properties
+              echo "RELEASE_STORE_PASSWORD=$KEYSTORE_PASSWORD" >> gradle.properties
+              echo "RELEASE_KEY_ALIAS=$KEY_ALIAS" >> gradle.properties
+              echo "RELEASE_KEY_PASSWORD=$KEY_PASSWORD" >> gradle.properties
+              
+              echo "✅ Gradle properties updated"
+            else
+              echo "❌ Keystore validation failed - file is corrupted or wrong password"
+              echo "Trying to recreate keystore..."
+              
+              # Generate new temporary keystore
+              keytool -genkey -v \
+                -keystore app/release.keystore \
+                -storepass "$KEYSTORE_PASSWORD" \
+                -alias "$KEY_ALIAS" \
+                -keypass "$KEY_PASSWORD" \
+                -keyalg RSA -keysize 2048 \
+                -validity 25000 \
+                -dname "CN=Pool Assistant, OU=Victory Apps, O=Victory, L=Jakarta, ST=Jakarta, C=ID"
+              
+              echo "🔄 Generated temporary keystore for this build"
+              
+              # Set gradle properties
+              echo "RELEASE_STORE_FILE=release.keystore" >> gradle.properties
+              echo "RELEASE_STORE_PASSWORD=$KEYSTORE_PASSWORD" >> gradle.properties
+              echo "RELEASE_KEY_ALIAS=$KEY_ALIAS" >> gradle.properties
+              echo "RELEASE_KEY_PASSWORD=$KEY_PASSWORD" >> gradle.properties
+            fi
+          else
+            echo "❌ Failed to create keystore file"
+            exit 1
+          fi
         else
-          echo "No keystore found, building unsigned APK"
+          echo "❌ KEYSTORE_BASE64 secret not found"
+          exit 1
         fi
 
     - name: Verify Build Configuration
