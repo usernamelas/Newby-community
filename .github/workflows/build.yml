@@ -136,8 +136,8 @@ jobs:
         fi
     
     - name: Run tests
-    if: steps.config.outputs.build_type != 'release'
-    run: |
+      if: steps.config.outputs.build_type != 'release'
+      run: |
         FLAVOR="${{ steps.config.outputs.flavor }}"
         BUILD_TYPE="${{ steps.config.outputs.build_type }}"
     
