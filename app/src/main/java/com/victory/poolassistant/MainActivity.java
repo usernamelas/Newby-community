@@ -32,6 +32,9 @@ import com.victory.poolassistant.ui.fragments.AboutFragment;
 import com.victory.poolassistant.ui.fragments.StatsFragment;
 import com.victory.poolassistant.utils.PermissionUtils;
 import com.victory.poolassistant.utils.ThemeManager;
+import com.victory.poolassistant.overlay.OverlayManager;
+import com.victory.poolassistant.utils.PermissionHelper;
+
 
 /**
  * MainActivity - Main entry point with professional UI
@@ -59,6 +62,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private String currentFragmentTag = "home";
     private boolean isOverlayServiceRunning = false;
     private boolean permissionsGranted = false;
+    
+    //overlay
+    private static final String TAG = "MainActivity";
+    private OverlayManager overlayManager;
+    
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -384,6 +392,50 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         snackbar.show();
     }
     
+            /**
+     * Initialize overlay manager
+     */
+    private void initializeOverlayManager() {
+        overlayManager = OverlayManager.getInstance(this);
+        overlayManager.setOnOverlayStateChangeListener(this);
+        
+        Logger.d(TAG, "OverlayManager initialized");
+    }
+    
+    /**
+     * Start floating overlay (call this from UI button)
+     */
+    public void startFloatingOverlay() {
+        Logger.d(TAG, "Starting floating overlay from MainActivity");
+        
+        if (overlayManager != null) {
+            overlayManager.startOverlay();
+        }
+    }
+    
+    /**
+     * Stop floating overlay
+     */
+    public void stopFloatingOverlay() {
+        Logger.d(TAG, "Stopping floating overlay from MainActivity");
+        
+        if (overlayManager != null) {
+            overlayManager.stopOverlay();
+        }
+    }
+    
+    /**
+     * Toggle floating overlay
+     */
+    public void toggleFloatingOverlay() {
+        Logger.d(TAG, "Toggling floating overlay from MainActivity");
+        
+        if (overlayManager != null) {
+            overlayManager.toggleOverlay();
+        }
+    }
+    
+    
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.main_menu, menu);
@@ -472,5 +524,87 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
         
         Logger.d(TAG, "MainActivity destroyed");
+    }
+    
+    
+
+    
+    // OverlayManager.OnOverlayStateChangeListener implementation
+    @Override
+    public void onOverlayStarted() {
+        Logger.i(TAG, "Overlay started successfully");
+        runOnUiThread(() -> {
+            // Update UI - maybe change button text to "Stop Overlay"
+            Toast.makeText(this, "Floating overlay started", Toast.LENGTH_SHORT).show();
+        });
+    }
+    
+    @Override
+    public void onOverlayStopped() {
+        Logger.i(TAG, "Overlay stopped");
+        runOnUiThread(() -> {
+            // Update UI - maybe change button text to "Start Overlay"
+            Toast.makeText(this, "Floating overlay stopped", Toast.LENGTH_SHORT).show();
+        });
+    }
+    
+    @Override
+    public void onOverlayPermissionRequired() {
+        Logger.w(TAG, "Overlay permission required");
+        runOnUiThread(() -> {
+            showOverlayPermissionDialog();
+        });
+    }
+    
+    @Override
+    public void onOverlayError(String error) {
+        Logger.e(TAG, "Overlay error: " + error);
+        runOnUiThread(() -> {
+            Toast.makeText(this, "Overlay error: " + error, Toast.LENGTH_LONG).show();
+        });
+    }
+    
+    /**
+     * Show overlay permission dialog
+     */
+    private void showOverlayPermissionDialog() {
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Overlay Permission Required")
+            .setMessage("Pool Assistant needs overlay permission to show floating controls over other apps.")
+            .setPositiveButton("Grant Permission", (dialog, which) -> {
+                PermissionHelper.requestOverlayPermission(this);
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
+    }
+    
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        
+        if (requestCode == PermissionHelper.REQUEST_OVERLAY_PERMISSION) {
+            if (PermissionHelper.handleOverlayPermissionResult(this)) {
+                Logger.i(TAG, "Overlay permission granted");
+                Toast.makeText(this, "Overlay permission granted!", Toast.LENGTH_SHORT).show();
+                
+                // Auto-start overlay after permission granted
+                new Handler().postDelayed(() -> {
+                    startFloatingOverlay();
+                }, 1000);
+            } else {
+                Logger.w(TAG, "Overlay permission denied");
+                Toast.makeText(this, "Overlay permission is required for floating controls", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        
+        // Cleanup overlay manager
+        if (overlayManager != null) {
+            overlayManager.cleanup();
+        }
     }
 }

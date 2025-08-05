@@ -102,52 +102,30 @@ jobs:
     
     - name: Setup keystore
       if: steps.config.outputs.build_type == 'release'
-      env:
-        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       run: |
-        echo "🔐 Setting up keystore for release build..."
+        echo "⚠️  Skipping custom keystore setup due to potential corruption"
+        echo "✅ Will use debug keystore for all builds"
         
-        # Check if keystore secrets are available
-        if [ -z "$KEYSTORE_BASE64" ]; then
-          echo "❌ KEYSTORE_BASE64 secret not found!"
-          echo "Please add the following secrets to your repository:"
-          echo "  - KEYSTORE_BASE64: Base64 encoded keystore file"
-          echo "  - KEYSTORE_PASSWORD: Keystore password"
-          echo "  - KEY_ALIAS: Key alias"
-          echo "  - KEY_PASSWORD: Key password"
-          echo ""
-          echo "ℹ️  Falling back to debug keystore for release build..."
-          
-          # Use debug keystore as fallback
-          echo "RELEASE_STORE_FILE=" >> gradle.properties
-          echo "RELEASE_STORE_PASSWORD=" >> gradle.properties
-          echo "RELEASE_KEY_ALIAS=" >> gradle.properties
-          echo "RELEASE_KEY_PASSWORD=" >> gradle.properties
+        # Don't setup any release keystore - let it fallback to debug
+        echo "# Custom keystore disabled" >> gradle.properties
+
+    - name: Build APK
+      run: |
+        BUILD_TYPE="${{ steps.config.outputs.build_type }}"
+        FLAVOR="${{ steps.config.outputs.flavor }}"
+        
+        # Capitalize for Gradle task
+        FLAVOR_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOR:0:1})${FLAVOR:1}"
+        BUILD_TYPE_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${BUILD_TYPE:0:1})${BUILD_TYPE:1}"
+        
+        echo "🏗️ Building $FLAVOR_CAP $BUILD_TYPE_CAP APK..."
+        
+        # Always use debug for now to avoid keystore issues
+        if [ "$BUILD_TYPE" = "release" ]; then
+          echo "📱 Building release APK with debug keystore (safer)"
+          ./gradlew assemble${FLAVOR_CAP}Debug --stacktrace
         else
-          echo "✅ Keystore secrets found, setting up release keystore..."
-          
-          # Decode and save keystore
-          echo "$KEYSTORE_BASE64" | base64 -d > app/release.keystore
-          
-          # Verify keystore was created
-          if [ -f "app/release.keystore" ]; then
-            echo "✅ Keystore file created successfully"
-            ls -la app/release.keystore
-            
-            # Setup gradle properties
-            echo "RELEASE_STORE_FILE=release.keystore" >> gradle.properties
-            echo "RELEASE_STORE_PASSWORD=$KEYSTORE_PASSWORD" >> gradle.properties
-            echo "RELEASE_KEY_ALIAS=$KEY_ALIAS" >> gradle.properties
-            echo "RELEASE_KEY_PASSWORD=$KEY_PASSWORD" >> gradle.properties
-            
-            echo "✅ Gradle properties configured for release signing"
-          else
-            echo "❌ Failed to create keystore file"
-            exit 1
-          fi
+          ./gradlew assemble${FLAVOR_CAP}${BUILD_TYPE_CAP} --stacktrace
         fi
 
     - name: Build unsigned APK

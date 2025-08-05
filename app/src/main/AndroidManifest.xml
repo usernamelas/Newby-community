@@ -15,6 +15,14 @@
     
     <!-- Screen capture for game detection -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    
+    <!-- Add these to existing AndroidManifest.xml -->
+
+    <!-- Permissions for floating overlay -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
 
     <application
         android:name=".PoolAssistantApplication"
@@ -38,7 +46,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
+        
+        
+        <!-- Add to strings.xml: -->
+        <string name="overlay_service_description">Pool Assistant floating overlay for trajectory assistance</string>
+        
+        
         <!-- Floating overlay service -->
         <service
             android:name=".services.OverlayService"
@@ -52,7 +65,18 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="specialUse" />
-
+            
+               <!-- Inside <application> tag, add: -->
+        
+        <!-- Floating Overlay Service -->
+        <service
+            android:name=".overlay.FloatingOverlayService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            android:description="@string/overlay_service_description" />
+     
+        
     </application>
 
 </manifest>

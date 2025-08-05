@@ -1,0 +1,6 @@
+<!-- overlay_minimized_background.xml -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#E8000000" />
+    <corners android:radius="40dp" />
+    <stroke android:width="2dp" android:color="#4CAF50" />
+</shape>

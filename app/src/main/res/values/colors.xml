@@ -105,4 +105,24 @@
     <color name="ripple_secondary">#334CAF50</color>
     <color name="ripple_surface">#33000000</color>
     <color name="ripple_surface_dark">#33FFFFFF</color>
+    
+    <!-- Add these colors to existing colors.xml -->
+
+    <!-- Overlay Colors -->
+    <color name="overlay_primary">#4CAF50</color>
+    <color name="overlay_primary_dark">#388E3C</color>
+    <color name="overlay_background">#E8000000</color>
+    <color name="overlay_surface">#33FFFFFF</color>
+
+    <!-- Overlay Text Colors -->
+    <color name="overlay_text_primary">#FFFFFF</color>
+    <color name="overlay_text_secondary">#CCFFFFFF</color>
+    <color name="overlay_text_disabled">#66FFFFFF</color>
+
+    <!-- Status Colors -->
+    <color name="status_active">#4CAF50</color>
+    <color name="status_inactive">#F44336</color>
+    <color name="status_warning">#FF9800</color>
+    <color name="status_info">#2196F3</color>
+    
 </resources>

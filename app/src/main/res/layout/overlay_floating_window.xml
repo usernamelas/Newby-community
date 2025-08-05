@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/overlay_background"
+    android:padding="8dp">
+
+    <!-- Main Container (Full View) -->
+    <LinearLayout
+        android:id="@+id/main_container"
+        android:layout_width="280dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/overlay_main_background"
+        android:elevation="8dp">
+
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="12dp"
+            android:background="@drawable/overlay_header_background"
+            android:gravity="center_vertical">
+
+            <!-- Title -->
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Pool Assistant"
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:drawableStart="@drawable/ic_pool_assistant"
+                android:drawablePadding="8dp"
+                android:gravity="center_vertical" />
+
+            <!-- Minimize Button -->
+            <ImageButton
+                android:id="@+id/btn_minimize"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/overlay_button_background"
+                android:src="@drawable/ic_minimize"
+                android:contentDescription="Minimize"
+                android:scaleType="centerInside" />
+
+            <!-- Close Button -->
+            <ImageButton
+                android:id="@+id/btn_close"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/overlay_button_background"
+                android:src="@drawable/ic_close"
+                android:contentDescription="Close"
+                android:scaleType="centerInside" />
+
+        </LinearLayout>
+
+        <!-- Content Area -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Status Display -->
+            <TextView
+                android:id="@+id/tv_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Pool Assistant Ready"
+                android:textColor="@color/overlay_text_primary"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:padding="8dp"
+                android:background="@drawable/status_background"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Control Buttons -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <!-- Settings Button -->
+                <ImageButton
+                    android:id="@+id/btn_settings"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/overlay_control_button_background"
+                    android:src="@drawable/ic_settings"
+                    android:contentDescription="Settings"
+                    android:scaleType="centerInside" />
+
+                <!-- Trajectory Toggle Button (Future) -->
+                <ImageButton
+                    android:id="@+id/btn_trajectory"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/overlay_control_button_background"
+                    android:src="@drawable/ic_trajectory"
+                    android:contentDescription="Toggle Trajectory"
+                    android:scaleType="centerInside" />
+
+                <!-- Game Detection Button (Future) -->
+                <ImageButton
+                    android:id="@+id/btn_detection"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/overlay_control_button_background"
+                    android:src="@drawable/ic_detection"
+                    android:contentDescription="Game Detection"
+                    android:scaleType="centerInside" />
+
+            </LinearLayout>
+
+            <!-- Info Text -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Drag to move • Tap minimize to hide"
+                android:textColor="@color/overlay_text_secondary"
+                android:textSize="12sp"
+                android:gravity="center"
+                android:layout_marginTop="12dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Minimized Container (Compact View) -->
+    <LinearLayout
+        android:id="@+id/minimized_container"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:orientation="vertical"
+        android:background="@drawable/overlay_minimized_background"
+        android:gravity="center"
+        android:elevation="8dp"
+        android:visibility="gone">
+
+        <!-- Expand Button -->
+        <ImageButton
+            android:id="@+id/btn_expand"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/overlay_expand_button_background"
+            android:src="@drawable/ic_expand"
+            android:contentDescription="Expand"
+            android:scaleType="centerInside" />
+
+        <!-- Mini Status Indicator -->
+        <View
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/status_indicator_active" />
+
+    </LinearLayout>
+
+</LinearLayout>
