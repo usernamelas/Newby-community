@@ -32,21 +32,14 @@ android {
         debug {
             // Let Android handle debug keystore automatically
         }
-
         // REMOVE release signing config - build unsigned for now
-        // release {
-        //     storeFile file(findProperty('RELEASE_STORE_FILE') ?: 'release.keystore')
-        //     storePassword findProperty('RELEASE_STORE_PASSWORD') ?: System.getenv('KEYSTORE_PASSWORD')
-        //     keyAlias findProperty('RELEASE_KEY_ALIAS') ?: System.getenv('KEY_ALIAS')
-        //     keyPassword findProperty('RELEASE_KEY_PASSWORD') ?: System.getenv('KEY_PASSWORD')
-        // }
     }
 
     buildTypes {
         debug {
             debuggable true
             minifyEnabled false
-            shrinkResources = minifyEnabled
+            shrinkResources false
             applicationIdSuffix ".debug"
             versionNameSuffix "-debug"
 
@@ -60,9 +53,9 @@ android {
             // REMOVE SIGNING REQUIREMENT - Build unsigned
             // signingConfig signingConfigs.release
             
-            // Default values - will be overridden by flavor-specific logic
-            minifyEnabled false
-            shrinkResources = minifyEnabled
+            // Will be set differently based on flavor - see bottom
+            minifyEnabled false  // Default for standard
+            shrinkResources false
 
             buildConfigField "boolean", "DEBUG_MODE", "false"
             buildConfigField "boolean", "OBFUSCATED", "false"
@@ -72,9 +65,7 @@ android {
         releaseOpen {
             debuggable false
             minifyEnabled false
-            shrinkResources = minifyEnabled
-
-            proguardFiles 'proguard-clean-only.pro'
+            shrinkResources false
 
             buildConfigField "boolean", "DEBUG_MODE", "false"
             buildConfigField "boolean", "OBFUSCATED", "false"
@@ -83,8 +74,8 @@ android {
 
         beta {
             debuggable true
-            minifyEnabled false  // Default - will be overridden for pro
-            shrinkResources = minifyEnabled
+            minifyEnabled false  // Default for standard
+            shrinkResources false
 
             buildConfigField "boolean", "DEBUG_MODE", "true"
             buildConfigField "boolean", "OBFUSCATED", "false"
@@ -116,38 +107,6 @@ android {
             buildConfigField "boolean", "LSPOSED_SUPPORT", "false"     // ❌ Not using LSPosed
             buildConfigField "boolean", "LIBSU_SUPPORT", "true"        // ✅ Using libsu
             buildConfigField "boolean", "PROTECTED_BUILD", "true"      // ✅ Protected
-        }
-    }
-
-    // APPLY FLAVOR-SPECIFIC PROTECTION LOGIC
-    android.applicationVariants.all { variant ->
-        def flavorName = variant.flavorName
-        def buildTypeName = variant.buildType.name
-        
-        if (buildTypeName == 'release' || buildTypeName == 'beta') {
-            if (flavorName == 'pro') {
-                // PRO: Enable R8 + ProGuard protection
-                variant.buildType.minifyEnabled = true
-                variant.buildType.shrinkResources = true
-                variant.buildType.proguardFiles(
-                    getDefaultProguardFile('proguard-android-optimize.txt'),
-                    file('proguard-rules.pro'),
-                    file('r8-stealth.pro')
-                )
-                variant.buildType.buildConfigField("boolean", "OBFUSCATED", "true")
-                variant.buildType.buildConfigField("String", "BUILD_TYPE_NAME", "\"${buildTypeName.capitalize()}-Protected\"")
-                
-                println("🔐 ${flavorName.toUpperCase()} ${buildTypeName.toUpperCase()}: R8 + ProGuard protection enabled")
-                
-            } else if (flavorName == 'standard') {
-                // STANDARD: Clean build, no protection
-                variant.buildType.minifyEnabled = false
-                variant.buildType.shrinkResources = false
-                variant.buildType.buildConfigField("boolean", "OBFUSCATED", "false")
-                variant.buildType.buildConfigField("String", "BUILD_TYPE_NAME", "\"${buildTypeName.capitalize()}-Clean\"")
-                
-                println("📖 ${flavorName.toUpperCase()} ${buildTypeName.toUpperCase()}: Clean build, no protection")
-            }
         }
     }
 
@@ -224,6 +183,28 @@ android {
                 output.outputFileName.set(newFileName)
             }
         })
+    }
+}
+
+// FIXED: Use afterEvaluate to avoid readonly property issues
+afterEvaluate {
+    android.applicationVariants.all { variant ->
+        def flavorName = variant.flavorName
+        def buildTypeName = variant.buildType.name
+        
+        if ((buildTypeName == 'release' || buildTypeName == 'beta') && flavorName == 'pro') {
+            // PRO: Apply protection via gradle task configuration
+            variant.getObfuscation().setMinifyEnabled(true)
+            variant.getObfuscation().getProguardFiles().from(
+                getDefaultProguardFile('proguard-android-optimize.txt'),
+                'proguard-rules.pro',
+                'r8-stealth.pro'
+            )
+            
+            println("🔐 ${flavorName.toUpperCase()} ${buildTypeName.toUpperCase()}: R8 + ProGuard protection enabled")
+        } else {
+            println("📖 ${flavorName.toUpperCase()} ${buildTypeName.toUpperCase()}: Clean build, no protection")
+        }
     }
 }
 
