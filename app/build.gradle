@@ -4,22 +4,7 @@ plugins {
     // id 'com.google.gms.google-services' // Optional
 }
 
-// --- Logika untuk membuat debug.keystore jika tidak ada ---
-def debugKeystoreFile = file("${project.buildDir}/debug.keystore")
-if (!debugKeystoreFile.exists()) {
-    println("Creating debug keystore at: ${debugKeystoreFile.path}")
-    debugKeystoreFile.parentFile.mkdirs()
-    exec {
-        commandLine 'keytool', '-genkey', '-v',
-            '-keystore', debugKeystoreFile.absolutePath,
-            '-storepass', 'android', '-alias', 'androiddebugkey',
-            '-keypass', 'android',
-            '-keyalg', 'RSA', '-keysize', '2048',
-            '-validity', '10000',
-            '-dname', 'CN=Android Debug, O=Android, C=US'
-    }
-}
-// --------------------------------------------------------
+
 
 android {
     namespace 'com.victory.poolassistant'
