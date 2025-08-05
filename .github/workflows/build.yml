@@ -136,13 +136,17 @@ jobs:
         fi
     
     - name: Run tests
-      if: steps.config.outputs.build_type != 'release'
-      run: |
-        FLAVOR_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${{ steps.config.outputs.flavor }}:0:1)${{ steps.config.outputs.flavor }}:1"
-        BUILD_TYPE_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${{ steps.config.outputs.build_type }}:0:1)${{ steps.config.outputs.build_type }}:1"
-        
+    if: steps.config.outputs.build_type != 'release'
+    run: |
+        FLAVOR="${{ steps.config.outputs.flavor }}"
+        BUILD_TYPE="${{ steps.config.outputs.build_type }}"
+    
+    # Capitalize first letter correctly
+        FLAVOR_CAP="$(echo ${FLAVOR^})"
+        BUILD_TYPE_CAP="$(echo ${BUILD_TYPE^})"
+    
         echo "🧪 Running tests for $FLAVOR_CAP $BUILD_TYPE_CAP..."
-        ./gradlew test${FLAVOR_CAP}${BUILD_TYPE_CAP}UnitTest --continue
+        ./gradlew test
     
     - name: Find and rename APK
       id: apk
