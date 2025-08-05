@@ -4,6 +4,9 @@ plugins {
     // id 'com.google.gms.google-services' // Optional
 }
 
+// Define compose version at the top
+def compose_version = '1.5.8'
+
 android {
     namespace 'com.victory.poolassistant'
     compileSdk 34
@@ -30,16 +33,22 @@ android {
 
     signingConfigs {
         debug {
-            // Let Android handle debug keystore automatically
+            // Android akan otomatis menggunakan debug keystore bawaan
         }
-        // REMOVE release signing config - build unsigned for now
+
+        release {
+            storeFile file(findProperty('RELEASE_STORE_FILE') ?: 'release.keystore')
+            storePassword findProperty('RELEASE_STORE_PASSWORD') ?: System.getenv('KEYSTORE_PASSWORD')
+            keyAlias findProperty('RELEASE_KEY_ALIAS') ?: System.getenv('KEY_ALIAS')
+            keyPassword findProperty('RELEASE_KEY_PASSWORD') ?: System.getenv('KEY_PASSWORD')
+        }
     }
 
     buildTypes {
         debug {
             debuggable true
             minifyEnabled false
-            shrinkResources false
+            shrinkResources false  // Fixed: removed equals sign and set to false when minify is false
             applicationIdSuffix ".debug"
             versionNameSuffix "-debug"
 
@@ -50,22 +59,32 @@ android {
 
         release {
             debuggable false
-            // REMOVE SIGNING REQUIREMENT - Build unsigned
-            // signingConfig signingConfigs.release
-            
-            // Will be set differently based on flavor - see bottom
-            minifyEnabled false  // Default for standard
-            shrinkResources false
+            minifyEnabled true
+            shrinkResources true  // Fixed: removed equals sign and set to true when minify is true
+
+            if (project.hasProperty('RELEASE_STORE_FILE')) {
+                signingConfig signingConfigs.release
+                System.out.println("Building signed release APK.")
+            } else {
+                signingConfig null
+                System.out.println("WARNING: Building unsigned release APK. Keystore properties not found.")
+            }
+
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
+                         'proguard-rules.pro',
+                         'r8-stealth.pro'
 
             buildConfigField "boolean", "DEBUG_MODE", "false"
-            buildConfigField "boolean", "OBFUSCATED", "false"
-            buildConfigField "String", "BUILD_TYPE_NAME", "\"Release\""
+            buildConfigField "boolean", "OBFUSCATED", "true"
+            buildConfigField "String", "BUILD_TYPE_NAME", "\"Release-Protected\""
         }
 
         releaseOpen {
             debuggable false
             minifyEnabled false
-            shrinkResources false
+            shrinkResources false  // Fixed: removed equals sign and set to false when minify is false
+
+            proguardFiles 'proguard-clean-only.pro'
 
             buildConfigField "boolean", "DEBUG_MODE", "false"
             buildConfigField "boolean", "OBFUSCATED", "false"
@@ -74,11 +93,21 @@ android {
 
         beta {
             debuggable true
-            minifyEnabled false  // Default for standard
-            shrinkResources false
+            minifyEnabled true
+            shrinkResources true  // Fixed: removed equals sign and set to true when minify is true
+
+            if (project.hasProperty('RELEASE_STORE_FILE')) {
+                signingConfig signingConfigs.release
+            } else {
+                signingConfig null
+                System.out.println("WARNING: Building unsigned beta APK. Keystore properties not found.")
+            }
+
+            proguardFiles getDefaultProguardFile('proguard-android.txt'),
+                         'proguard-rules.pro'
 
             buildConfigField "boolean", "DEBUG_MODE", "true"
-            buildConfigField "boolean", "OBFUSCATED", "false"
+            buildConfigField "boolean", "OBFUSCATED", "true"
             buildConfigField "String", "BUILD_TYPE_NAME", "\"Beta\""
         }
     }
@@ -90,11 +119,8 @@ android {
             applicationIdSuffix ".standard"
             versionNameSuffix "-standard"
 
-            // CORRECTED: Both flavors have SAME FEATURES
-            buildConfigField "boolean", "ROOT_FEATURES", "true"        // ✅ Root enabled
-            buildConfigField "boolean", "LSPOSED_SUPPORT", "false"     // ❌ Not using LSPosed
-            buildConfigField "boolean", "LIBSU_SUPPORT", "true"        // ✅ Using libsu
-            buildConfigField "boolean", "PROTECTED_BUILD", "false"     // ❌ No protection
+            buildConfigField "boolean", "ROOT_FEATURES", "false"
+            buildConfigField "boolean", "LSPOSED_SUPPORT", "false"
         }
 
         pro {
@@ -102,11 +128,8 @@ android {
             applicationIdSuffix ".pro"
             versionNameSuffix "-pro"
 
-            // CORRECTED: Both flavors have SAME FEATURES  
-            buildConfigField "boolean", "ROOT_FEATURES", "true"        // ✅ Root enabled
-            buildConfigField "boolean", "LSPOSED_SUPPORT", "false"     // ❌ Not using LSPosed
-            buildConfigField "boolean", "LIBSU_SUPPORT", "true"        // ✅ Using libsu
-            buildConfigField "boolean", "PROTECTED_BUILD", "true"      // ✅ Protected
+            buildConfigField "boolean", "ROOT_FEATURES", "true"
+            buildConfigField "boolean", "LSPOSED_SUPPORT", "true"
         }
     }
 
@@ -146,7 +169,7 @@ android {
     }
     
     androidComponents {
-        onVariants(selector().all(), { variant ->
+        onVariants(selector().all()) { variant ->
             variant.outputs.forEach { output ->
                 def appName = "PoolAssistant"
                 def flavor = variant.flavorName.capitalize()
@@ -157,22 +180,13 @@ android {
                 def buildTypeName = buildType
                 switch(buildType) {
                     case 'release':
-                        // Will be set by flavor logic (Protected/Clean)
-                        if (variant.flavorName == 'pro') {
-                            buildTypeName = 'Protected'
-                        } else {
-                            buildTypeName = 'Clean'
-                        }
+                        buildTypeName = 'Protected'
                         break
                     case 'releaseOpen':
                         buildTypeName = 'Open'
                         break
                     case 'beta':
-                        if (variant.flavorName == 'pro') {
-                            buildTypeName = 'Beta-Protected'
-                        } else {
-                            buildTypeName = 'Beta-Clean'
-                        }
+                        buildTypeName = 'Beta'
                         break
                     case 'debug':
                         buildTypeName = 'Debug'
@@ -182,28 +196,6 @@ android {
                 def newFileName = "${appName}-${flavor}-${buildTypeName}-v${version}-build${buildNumber}.apk"
                 output.outputFileName.set(newFileName)
             }
-        })
-    }
-}
-
-// FIXED: Use afterEvaluate to avoid readonly property issues
-afterEvaluate {
-    android.applicationVariants.all { variant ->
-        def flavorName = variant.flavorName
-        def buildTypeName = variant.buildType.name
-        
-        if ((buildTypeName == 'release' || buildTypeName == 'beta') && flavorName == 'pro') {
-            // PRO: Apply protection via gradle task configuration
-            variant.getObfuscation().setMinifyEnabled(true)
-            variant.getObfuscation().getProguardFiles().from(
-                getDefaultProguardFile('proguard-android-optimize.txt'),
-                'proguard-rules.pro',
-                'r8-stealth.pro'
-            )
-            
-            println("🔐 ${flavorName.toUpperCase()} ${buildTypeName.toUpperCase()}: R8 + ProGuard protection enabled")
-        } else {
-            println("📖 ${flavorName.toUpperCase()} ${buildTypeName.toUpperCase()}: Clean build, no protection")
         }
     }
 }
@@ -248,17 +240,17 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.10.1'
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2'
 
-    // CORRECTED: Root utilities with libsu - BOTH flavors get this
+    // Root utilities with libsu (pro flavor only)
     def libsuVersion = '6.0.0'
-    implementation "com.github.topjohnwu.libsu:core:${libsuVersion}"
-    implementation "com.github.topjohnwu.libsu:service:${libsuVersion}"
-    implementation "com.github.topjohnwu.libsu:nio:${libsuVersion}"
-    
-    // Add JSR-305 to fix R8 issues
-    implementation 'com.google.code.findbugs:jsr305:3.0.2'
+    proImplementation "com.github.topjohnwu.libsu:core:${libsuVersion}"
+    proImplementation "com.github.topjohnwu.libsu:service:${libsuVersion}"
+    proImplementation "com.github.topjohnwu.libsu:nio:${libsuVersion}"
 
     // Image processing (optional)
     implementation 'com.github.bumptech.glide:glide:4.16.0'
+
+    // Annotations processor for Glide
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.16.0'
 
     // Animations
     implementation 'com.airbnb.android:lottie:6.3.0'
