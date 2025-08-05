@@ -167,38 +167,88 @@ jobs:
         BUILD_TYPE="${{ steps.config.outputs.build_type }}"
         FLAVOR="${{ steps.config.outputs.flavor }}"
         
-        # Find APK file
-        APK_PATH="app/build/outputs/apk/$FLAVOR/$BUILD_TYPE"
-        APK_FILE=$(find $APK_PATH -name "*.apk" | head -1)
+        echo "🔍 Looking for APK files..."
+        echo "Build Type: $BUILD_TYPE"
+        echo "Flavor: $FLAVOR"
         
-        if [ -f "$APK_FILE" ]; then
-          # Create new name with unsigned suffix
-          VERSION_NAME=$(grep "versionName" app/build.gradle | sed 's/.*"\(.*\)".*/\1/')
-          BUILD_NUMBER=${{ github.run_number }}
-          
-          # Add protection info to filename
-          if [ "$FLAVOR" = "pro" ]; then
-            PROTECTION_SUFFIX="-Protected"
-          else
-            PROTECTION_SUFFIX="-Clean"
+        # Find APK file with more flexible search
+        APK_FILE=""
+        
+        # Try different possible paths
+        POSSIBLE_PATHS=(
+          "app/build/outputs/apk/$FLAVOR/$BUILD_TYPE"
+          "app/build/outputs/apk/$BUILD_TYPE"
+          "app/build/outputs/apk"
+        )
+        
+        for path in "${POSSIBLE_PATHS[@]}"; do
+          if [ -d "$path" ]; then
+            echo "Checking path: $path"
+            APK_FILE=$(find "$path" -name "*.apk" -type f | head -1)
+            if [ -n "$APK_FILE" ] && [ -f "$APK_FILE" ]; then
+              echo "Found APK: $APK_FILE"
+              break
+            fi
           fi
-          
-          NEW_NAME="PoolAssistant-$FLAVOR-$BUILD_TYPE$PROTECTION_SUFFIX-v$VERSION_NAME-build$BUILD_NUMBER-unsigned.apk"
-          
-          # Rename file
-          NEW_PATH="$APK_PATH/$NEW_NAME"
-          mv "$APK_FILE" "$NEW_PATH"
-          
-          echo "apk_path=$NEW_PATH" >> $GITHUB_OUTPUT
-          echo "apk_name=$NEW_NAME" >> $GITHUB_OUTPUT
+        done
+        
+        if [ -z "$APK_FILE" ] || [ ! -f "$APK_FILE" ]; then
+          echo "❌ No APK file found!"
+          echo "Available files in app/build/outputs/apk/:"
+          find app/build/outputs/apk/ -name "*.apk" -type f 2>/dev/null || echo "No APK files found"
+          exit 1
+        fi
+        
+        # Get version from gradle.properties or default
+        VERSION_NAME="2.0.0"
+        if [ -f "gradle.properties" ]; then
+          VERSION_PROP=$(grep "version.name" gradle.properties | cut -d'=' -f2 2>/dev/null || echo "")
+          if [ -n "$VERSION_PROP" ]; then
+            VERSION_NAME="$VERSION_PROP"
+          fi
+        fi
+        
+        # If version still not found, try from build.gradle
+        if [ "$VERSION_NAME" = "2.0.0" ] && [ -f "app/build.gradle" ]; then
+          VERSION_GRADLE=$(grep -o 'versionName[[:space:]]*"[^"]*"' app/build.gradle | sed 's/versionName[[:space:]]*"\([^"]*\)"/\1/' | head -1)
+          if [ -n "$VERSION_GRADLE" ]; then
+            VERSION_NAME="$VERSION_GRADLE"
+          fi
+        fi
+        
+        # Create new name
+        BUILD_NUMBER="${{ github.run_number }}"
+        NEW_NAME="PoolAssistant-${FLAVOR}-${BUILD_TYPE}-v${VERSION_NAME}-build${BUILD_NUMBER}.apk"
+        
+        # Get directory of original APK
+        APK_DIR=$(dirname "$APK_FILE")
+        NEW_PATH="$APK_DIR/$NEW_NAME"
+        
+        # Rename file
+        echo "📦 Renaming APK..."
+        echo "From: $APK_FILE"
+        echo "To: $NEW_PATH"
+        
+        mv "$APK_FILE" "$NEW_PATH"
+        
+        if [ -f "$NEW_PATH" ]; then
+          echo "✅ APK renamed successfully: $NEW_NAME"
           
           # Get file size
           APK_SIZE=$(du -h "$NEW_PATH" | cut -f1)
+          
+          # Set outputs
+          echo "apk_path=$NEW_PATH" >> $GITHUB_OUTPUT
+          echo "apk_name=$NEW_NAME" >> $GITHUB_OUTPUT
           echo "apk_size=$APK_SIZE" >> $GITHUB_OUTPUT
           
-          echo "✅ APK renamed: $NEW_NAME"
+          echo "📊 APK Details:"
+          echo "  Name: $NEW_NAME"
+          echo "  Path: $NEW_PATH"
+          echo "  Size: $APK_SIZE"
         else
-          echo "❌ APK file not found in $APK_PATH"
+          echo "❌ Failed to rename APK"
+          exit 1
         fi
     
     - name: Generate build info
