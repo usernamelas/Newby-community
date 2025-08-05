@@ -186,37 +186,42 @@ jobs:
     
     - name: Generate build info
       run: |
-        cat > build_info.txt << EOF
-📱 Pool Assistant Build Info
-============================
-
-🏷️ Build Details:
-• Flavor: ${{ steps.config.outputs.flavor }}
-• Build Type: ${{ steps.config.outputs.build_type }}
-• Version: $(grep "versionName" app/build.gradle | sed 's/.*"\(.*\)".*/\1/')
-• Build Number: ${{ github.run_number }}
-• Commit: $(git rev-parse --short HEAD)
-• Build Time: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-
-📦 APK Details:
-• File: ${{ steps.apk.outputs.apk_name }}
-• Size: ${{ steps.apk.outputs.apk_size }}
-• Signed: No (Unsigned for development)
-• Min SDK: 24 (Android 7.0)
-• Target SDK: 34 (Android 14)
-
-🔧 Features:
-• Root Support: Yes (libsu)
-• LSPosed Support: No (using libsu instead)
-• R8 Obfuscation: ${{ steps.config.outputs.flavor == 'pro' && 'Yes (Protected)' || 'No (Clean)' }}
-• ProGuard: ${{ steps.config.outputs.flavor == 'pro' && 'Yes (r8-stealth.pro)' || 'No' }}
-
-📋 Build Notes:
-• Both Pro and Standard have same features
-• Pro = Protected (R8 + ProGuard obfuscation)
-• Standard = Clean (no obfuscation, easy debugging)
-• Unsigned APK - can be installed for testing
-EOF
+        FLAVOR="${{ steps.config.outputs.flavor }}"
+        BUILD_TYPE="${{ steps.config.outputs.build_type }}"
+        if [ "$FLAVOR" = "pro" ]; then
+          ROOT_SUPPORT="Yes"
+          LIBSU_INTEGRATION="Yes"
+        else
+          ROOT_SUPPORT="No"
+          LIBSU_INTEGRATION="No"
+        fi
+        if [ "$BUILD_TYPE" = "release" ]; then
+          R8_OBFUSCATION="Yes"
+        else
+          R8_OBFUSCATION="No"
+        fi
+        VERSION_NAME=$(grep "versionName" app/build.gradle | sed 's/.*"\(.*\)".*/\1/')
+        
+        echo "Pool Assistant Build Info" > build_info.txt
+        echo "" >> build_info.txt
+        echo "Build Details:" >> build_info.txt
+        echo "• Flavor: $FLAVOR" >> build_info.txt
+        echo "• Build Type: $BUILD_TYPE" >> build_info.txt
+        echo "• Version: $VERSION_NAME" >> build_info.txt
+        echo "• Build Number: ${{ github.run_number }}" >> build_info.txt
+        echo "• Commit: $(git rev-parse --short HEAD)" >> build_info.txt
+        echo "• Build Time: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> build_info.txt
+        echo "" >> build_info.txt
+        echo "APK Details:" >> build_info.txt
+        echo "• File: ${{ steps.apk.outputs.apk_name }}" >> build_info.txt
+        echo "• Size: ${{ steps.apk.outputs.apk_size }}" >> build_info.txt
+        echo "• Min SDK: 24 (Android 7.0)" >> build_info.txt
+        echo "• Target SDK: 34 (Android 14)" >> build_info.txt
+        echo "" >> build_info.txt
+        echo "Features:" >> build_info.txt
+        echo "• Root Support: $ROOT_SUPPORT" >> build_info.txt
+        echo "• libsu Integration: $LIBSU_INTEGRATION" >> build_info.txt
+        echo "• R8 Obfuscation: $R8_OBFUSCATION" >> build_info.txt
     
     - name: Upload APK
       if: steps.apk.outputs.apk_path != ''
