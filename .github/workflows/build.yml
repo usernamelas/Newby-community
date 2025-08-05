@@ -137,16 +137,27 @@ jobs:
         
         
     
-    - name: Run tests  
+    - name: Run tests
       if: steps.config.outputs.build_type != 'release'
       run: |
         FLAVOR="${{ steps.config.outputs.flavor }}"
         BUILD_TYPE="${{ steps.config.outputs.build_type }}"
-    
-    # Capitalize for Gradle task
-        FLAVOR_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOR:0:1})${FLAVOR:1}"
-        BUILD_TYPE_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${BUILD_TYPE:0:1})${BUILD_TYPE:1}"
-    
+        
+        # Manual capitalization (most compatible)
+        if [ "$FLAVOR" = "standard" ]; then
+          FLAVOR_CAP="Standard"
+        elif [ "$FLAVOR" = "pro" ]; then
+          FLAVOR_CAP="Pro"
+        fi
+        
+        if [ "$BUILD_TYPE" = "debug" ]; then
+          BUILD_TYPE_CAP="Debug"
+        elif [ "$BUILD_TYPE" = "beta" ]; then
+          BUILD_TYPE_CAP="Beta"
+        elif [ "$BUILD_TYPE" = "release" ]; then
+          BUILD_TYPE_CAP="Release"
+        fi
+        
         echo "🧪 Running tests for $FLAVOR_CAP $BUILD_TYPE_CAP..."
         ./gradlew test${FLAVOR_CAP}${BUILD_TYPE_CAP}UnitTest --continue
     
