@@ -123,4 +123,7 @@
     <color name="status_warning">#FF9800</color>
     <color name="status_info">#2196F3</color>
     
+    <!-- white color -->
+    <color name="color_white">#FFFFFF</color>
+    
 </resources>
