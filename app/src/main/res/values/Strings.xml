@@ -239,6 +239,9 @@
     
     <string name="nav_header_subtitle">Placeholder Subtitle</string>
     
+      <!-- Add to strings.xml: -->
+    <string name="overlay_service_description">Pool Assistant floating overlay for trajectory assistance</string>
+    
 
     
 </resources>
