@@ -234,7 +234,7 @@ public class FloatingOverlayService extends Service {
         return createNotificationWithText("Pool Assistant is running");
     }
     
-    /**
+/**
      * Create notification dengan custom text
      */
     private Notification createNotificationWithText(String text) {
@@ -259,10 +259,10 @@ public class FloatingOverlayService extends Service {
         return new NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Pool Assistant")
             .setContentText(text)
-            .setSmallIcon(R.drawable.ic_notification) // TODO: Create this icon
+            .setSmallIcon(android.R.drawable.ic_dialog_info) // FIXED: Use system icon
             .setContentIntent(pendingIntent)
             .addAction(
-                R.drawable.ic_visibility, // TODO: Create this icon
+                android.R.drawable.ic_menu_view, // FIXED: Use system icon
                 isOverlayVisible ? "Hide Overlay" : "Show Overlay",
                 togglePendingIntent
             )

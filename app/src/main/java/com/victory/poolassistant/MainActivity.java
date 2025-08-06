@@ -16,57 +16,49 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.snackbar.Snackbar;
 import com.victory.poolassistant.core.AppConfig;
 import com.victory.poolassistant.core.Logger;
+import com.victory.poolassistant.databinding.ActivityMainBinding;
 import com.victory.poolassistant.ui.fragments.HomeFragment;
 import com.victory.poolassistant.ui.fragments.SettingsFragment;
 import com.victory.poolassistant.ui.fragments.AboutFragment;
 import com.victory.poolassistant.ui.fragments.StatsFragment;
 import com.victory.poolassistant.utils.PermissionUtils;
 import com.victory.poolassistant.utils.ThemeManager;
+// ADD THESE IMPORTS FOR OVERLAY INTEGRATION
 import com.victory.poolassistant.overlay.OverlayManager;
 import com.victory.poolassistant.utils.PermissionHelper;
-
 
 /**
  * MainActivity - Main entry point with professional UI
  * Features modern Material Design with navigation drawer
  */
-public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, OverlayManager.OnOverlayStateChangeListener {
     
     private static final String TAG = "MainActivity";
     private static final int REQUEST_OVERLAY_PERMISSION = 1001;
     
-    // UI Components (Fixed - no ViewBinding)
-    private DrawerLayout drawerLayout;
-    private NavigationView navView;
-    private androidx.appcompat.widget.Toolbar toolbar;
-    private FloatingActionButton fab;
-    private CoordinatorLayout coordinatorLayout;
+    // UI Components
+    private ActivityMainBinding binding;
     private ActionBarDrawerToggle toggle;
     private Handler uiHandler;
     
     // App managers
     private ThemeManager themeManager;
     private PoolAssistantApplication app;
+    // ADD OVERLAY MANAGER
+    private OverlayManager overlayManager;
     
     // State
     private String currentFragmentTag = "home";
     private boolean isOverlayServiceRunning = false;
     private boolean permissionsGranted = false;
-    
-    //overlay
-    private static final String TAG = "MainActivity";
-    private OverlayManager overlayManager;
-    
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,17 +94,24 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         // Get theme manager
         themeManager = app.getThemeManager();
         
-        // Set content view (Fixed - no ViewBinding)
-        setContentView(R.layout.activity_main);
+        // INITIALIZE OVERLAY MANAGER
+        initializeOverlayManager();
         
-        // Initialize views manually
-        drawerLayout = findViewById(R.id.drawer_layout);
-        navView = findViewById(R.id.nav_view);
-        toolbar = findViewById(R.id.toolbar);
-        fab = findViewById(R.id.fab);
-        coordinatorLayout = findViewById(R.id.coordinator_layout);
+        // Initialize view binding
+        binding = ActivityMainBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
         
         Logger.d(TAG, "Components initialized");
+    }
+    
+    /**
+     * Initialize overlay manager
+     */
+    private void initializeOverlayManager() {
+        overlayManager = OverlayManager.getInstance(this);
+        overlayManager.setOnOverlayStateChangeListener(this);
+        
+        Logger.d(TAG, "OverlayManager initialized");
     }
     
     /**
@@ -120,7 +119,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
      */
     private void setupUI() {
         // Setup toolbar
-        setSupportActionBar(toolbar);
+        setSupportActionBar(binding.toolbar);
         
         // Setup navigation drawer
         setupNavigationDrawer();
@@ -140,15 +139,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private void setupNavigationDrawer() {
         // Setup drawer toggle
         toggle = new ActionBarDrawerToggle(
-            this, drawerLayout, toolbar,
+            this, binding.drawerLayout, binding.toolbar,
             R.string.navigation_drawer_open, R.string.navigation_drawer_close
         );
         
-        drawerLayout.addDrawerListener(toggle);
+        binding.drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
         
         // Setup navigation view
-        navView.setNavigationItemSelectedListener(this);
+        binding.navView.setNavigationItemSelectedListener(this);
         
         // Update header info
         updateNavigationHeader();
@@ -158,9 +157,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
      * Setup floating action button
      */
     private void setupFloatingActionButton() {
-        fab.setOnClickListener(view -> {
+        binding.fab.setOnClickListener(view -> {
             if (permissionsGranted) {
-                toggleOverlayService();
+                toggleFloatingOverlay(); // CHANGED TO USE OVERLAY SYSTEM
             } else {
                 requestOverlayPermission();
             }
@@ -174,7 +173,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
      * Update navigation header with app info
      */
     private void updateNavigationHeader() {
-        View headerView = navView.getHeaderView(0);
+        View headerView = binding.navView.getHeaderView(0);
         
         // Update version info, theme, etc.
         // Will be implemented when we create the header layout
@@ -186,8 +185,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private void checkPermissions() {
         Logger.d(TAG, "Checking permissions...");
         
-        // Check overlay permission
-        boolean hasOverlayPerm = PermissionUtils.hasOverlayPermission(this);
+        // CHANGED TO USE NEW PERMISSION HELPER
+        boolean hasOverlayPerm = PermissionHelper.hasOverlayPermission(this);
         
         // Update state
         permissionsGranted = hasOverlayPerm;
@@ -196,10 +195,24 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         updateUIState();
         
         if (!hasOverlayPerm) {
-            showPermissionDialog();
+            showOverlayPermissionDialog(); // CHANGED METHOD NAME
         }
         
         Logger.d(TAG, "Permissions check completed - Granted: " + permissionsGranted);
+    }
+    
+    /**
+     * Show overlay permission dialog
+     */
+    private void showOverlayPermissionDialog() {
+        new AlertDialog.Builder(this)
+            .setTitle("Overlay Permission Required")
+            .setMessage("Pool Assistant needs overlay permission to show floating controls over other apps.")
+            .setPositiveButton("Grant Permission", (dialog, which) -> {
+                PermissionHelper.requestOverlayPermission(this);
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
     }
     
     /**
@@ -229,6 +242,81 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     }
     
+    // ===== NEW OVERLAY METHODS =====
+    
+    /**
+     * Start floating overlay (NEW)
+     */
+    public void startFloatingOverlay() {
+        Logger.d(TAG, "Starting floating overlay from MainActivity");
+        
+        if (overlayManager != null) {
+            overlayManager.startOverlay();
+        }
+    }
+    
+    /**
+     * Stop floating overlay (NEW)
+     */
+    public void stopFloatingOverlay() {
+        Logger.d(TAG, "Stopping floating overlay from MainActivity");
+        
+        if (overlayManager != null) {
+            overlayManager.stopOverlay();
+        }
+    }
+    
+    /**
+     * Toggle floating overlay (NEW)
+     */
+    public void toggleFloatingOverlay() {
+        Logger.d(TAG, "Toggling floating overlay from MainActivity");
+        
+        if (overlayManager != null) {
+            overlayManager.toggleOverlay();
+        }
+    }
+    
+    // ===== OVERLAY STATE LISTENER IMPLEMENTATION =====
+    
+    @Override
+    public void onOverlayStarted() {
+        Logger.i(TAG, "Overlay started successfully");
+        runOnUiThread(() -> {
+            isOverlayServiceRunning = true;
+            updateUIState();
+            Toast.makeText(this, "Floating overlay started", Toast.LENGTH_SHORT).show();
+        });
+    }
+    
+    @Override
+    public void onOverlayStopped() {
+        Logger.i(TAG, "Overlay stopped");
+        runOnUiThread(() -> {
+            isOverlayServiceRunning = false;
+            updateUIState();
+            Toast.makeText(this, "Floating overlay stopped", Toast.LENGTH_SHORT).show();
+        });
+    }
+    
+    @Override
+    public void onOverlayPermissionRequired() {
+        Logger.w(TAG, "Overlay permission required");
+        runOnUiThread(() -> {
+            showOverlayPermissionDialog();
+        });
+    }
+    
+    @Override
+    public void onOverlayError(String error) {
+        Logger.e(TAG, "Overlay error: " + error);
+        runOnUiThread(() -> {
+            Toast.makeText(this, "Overlay error: " + error, Toast.LENGTH_LONG).show();
+        });
+    }
+    
+    // ===== EXISTING METHODS (MODIFIED) =====
+    
     /**
      * Toggle overlay service on/off
      */
@@ -239,9 +327,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
         
         if (isOverlayServiceRunning) {
-            stopOverlayService();
+            stopFloatingOverlay(); // CHANGED TO USE NEW METHOD
         } else {
-            startOverlayService();
+            startFloatingOverlay(); // CHANGED TO USE NEW METHOD
         }
     }
     
@@ -251,19 +339,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private void startOverlayService() {
         Logger.i(TAG, "Starting overlay service...");
         
-        // TODO: Implement overlay service startup
-        // For now, simulate the action
-        simulateServiceStart();
-        
-        // Update state
-        isOverlayServiceRunning = true;
-        AppConfig.setBoolean(AppConfig.PREF_OVERLAY_ENABLED, true);
-        
-        // Update UI
-        updateUIState();
-        
-        // Show feedback
-        showSnackbar("Overlay service started", false);
+        // REPLACED WITH NEW OVERLAY SYSTEM
+        startFloatingOverlay();
     }
     
     /**
@@ -272,19 +349,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private void stopOverlayService() {
         Logger.i(TAG, "Stopping overlay service...");
         
-        // TODO: Implement overlay service shutdown
-        // For now, simulate the action
-        simulateServiceStop();
-        
-        // Update state
-        isOverlayServiceRunning = false;
-        AppConfig.setBoolean(AppConfig.PREF_OVERLAY_ENABLED, false);
-        
-        // Update UI
-        updateUIState();
-        
-        // Show feedback
-        showSnackbar("Overlay service stopped", false);
+        // REPLACED WITH NEW OVERLAY SYSTEM
+        stopFloatingOverlay();
     }
     
     /**
@@ -321,7 +387,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private void animateFab(boolean loading) {
         if (loading) {
             // Start rotation animation
-            fab.animate()
+            binding.fab.animate()
                 .rotation(360)
                 .setDuration(1000)
                 .setInterpolator(new AccelerateDecelerateInterpolator())
@@ -332,8 +398,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 });
         } else {
             // Stop animation
-            fab.animate().cancel();
-            fab.setRotation(0);
+            binding.fab.animate().cancel();
+            binding.fab.setRotation(0);
         }
     }
     
@@ -342,11 +408,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
      */
     private void updateFabState() {
         if (isOverlayServiceRunning) {
-            fab.setImageResource(R.drawable.ic_stop);
-            fab.setBackgroundTintList(getColorStateList(R.color.color_error));
+            binding.fab.setImageResource(R.drawable.ic_stop);
+            binding.fab.setBackgroundTintList(getColorStateList(R.color.color_error));
         } else {
-            fab.setImageResource(R.drawable.ic_play_arrow);
-            fab.setBackgroundTintList(getColorStateList(R.color.color_primary));
+            binding.fab.setImageResource(R.drawable.ic_play_arrow);
+            binding.fab.setBackgroundTintList(getColorStateList(R.color.color_primary));
         }
     }
     
@@ -383,7 +449,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
      * Show snackbar message
      */
     private void showSnackbar(String message, boolean isError) {
-        Snackbar snackbar = Snackbar.make(coordinatorLayout, message, Snackbar.LENGTH_LONG);
+        Snackbar snackbar = Snackbar.make(binding.coordinatorLayout, message, Snackbar.LENGTH_LONG);
         
         if (isError) {
             snackbar.setBackgroundTint(getColor(R.color.color_error));
@@ -391,50 +457,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         
         snackbar.show();
     }
-    
-            /**
-     * Initialize overlay manager
-     */
-    private void initializeOverlayManager() {
-        overlayManager = OverlayManager.getInstance(this);
-        overlayManager.setOnOverlayStateChangeListener(this);
-        
-        Logger.d(TAG, "OverlayManager initialized");
-    }
-    
-    /**
-     * Start floating overlay (call this from UI button)
-     */
-    public void startFloatingOverlay() {
-        Logger.d(TAG, "Starting floating overlay from MainActivity");
-        
-        if (overlayManager != null) {
-            overlayManager.startOverlay();
-        }
-    }
-    
-    /**
-     * Stop floating overlay
-     */
-    public void stopFloatingOverlay() {
-        Logger.d(TAG, "Stopping floating overlay from MainActivity");
-        
-        if (overlayManager != null) {
-            overlayManager.stopOverlay();
-        }
-    }
-    
-    /**
-     * Toggle floating overlay
-     */
-    public void toggleFloatingOverlay() {
-        Logger.d(TAG, "Toggling floating overlay from MainActivity");
-        
-        if (overlayManager != null) {
-            overlayManager.toggleOverlay();
-        }
-    }
-    
     
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -472,7 +494,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             loadFragment(new AboutFragment(), "about", "About");
         }
         
-        drawerLayout.closeDrawer(GravityCompat.START);
+        binding.drawerLayout.closeDrawer(GravityCompat.START);
         return true;
     }
     
@@ -481,10 +503,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onActivityResult(requestCode, resultCode, data);
         
         if (requestCode == REQUEST_OVERLAY_PERMISSION) {
-            if (PermissionUtils.hasOverlayPermission(this)) {
+            // UPDATED TO USE NEW PERMISSION HELPER
+            if (PermissionHelper.handleOverlayPermissionResult(this)) {
                 permissionsGranted = true;
                 updateUIState();
                 showSnackbar("Overlay permission granted!", false);
+                
+                // Auto-start overlay after permission granted
+                new Handler().postDelayed(() -> {
+                    startFloatingOverlay();
+                }, 1000);
             } else {
                 showSnackbar("Overlay permission denied. Some features may not work.", true);
             }
@@ -493,8 +521,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     
     @Override
     public void onBackPressed() {
-        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
-            drawerLayout.closeDrawer(GravityCompat.START);
+        if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            binding.drawerLayout.closeDrawer(GravityCompat.START);
         } else {
             super.onBackPressed();
         }
@@ -504,8 +532,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     protected void onResume() {
         super.onResume();
         
-        // Check if permissions changed
-        boolean currentOverlayPerm = PermissionUtils.hasOverlayPermission(this);
+        // Check if permissions changed - UPDATED TO USE NEW HELPER
+        boolean currentOverlayPerm = PermissionHelper.hasOverlayPermission(this);
         if (currentOverlayPerm != permissionsGranted) {
             permissionsGranted = currentOverlayPerm;
             updateUIState();
@@ -523,88 +551,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             uiHandler.removeCallbacksAndMessages(null);
         }
         
-        Logger.d(TAG, "MainActivity destroyed");
-    }
-    
-    
-
-    
-    // OverlayManager.OnOverlayStateChangeListener implementation
-    @Override
-    public void onOverlayStarted() {
-        Logger.i(TAG, "Overlay started successfully");
-        runOnUiThread(() -> {
-            // Update UI - maybe change button text to "Stop Overlay"
-            Toast.makeText(this, "Floating overlay started", Toast.LENGTH_SHORT).show();
-        });
-    }
-    
-    @Override
-    public void onOverlayStopped() {
-        Logger.i(TAG, "Overlay stopped");
-        runOnUiThread(() -> {
-            // Update UI - maybe change button text to "Start Overlay"
-            Toast.makeText(this, "Floating overlay stopped", Toast.LENGTH_SHORT).show();
-        });
-    }
-    
-    @Override
-    public void onOverlayPermissionRequired() {
-        Logger.w(TAG, "Overlay permission required");
-        runOnUiThread(() -> {
-            showOverlayPermissionDialog();
-        });
-    }
-    
-    @Override
-    public void onOverlayError(String error) {
-        Logger.e(TAG, "Overlay error: " + error);
-        runOnUiThread(() -> {
-            Toast.makeText(this, "Overlay error: " + error, Toast.LENGTH_LONG).show();
-        });
-    }
-    
-    /**
-     * Show overlay permission dialog
-     */
-    private void showOverlayPermissionDialog() {
-        new androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("Overlay Permission Required")
-            .setMessage("Pool Assistant needs overlay permission to show floating controls over other apps.")
-            .setPositiveButton("Grant Permission", (dialog, which) -> {
-                PermissionHelper.requestOverlayPermission(this);
-            })
-            .setNegativeButton("Cancel", null)
-            .show();
-    }
-    
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        
-        if (requestCode == PermissionHelper.REQUEST_OVERLAY_PERMISSION) {
-            if (PermissionHelper.handleOverlayPermissionResult(this)) {
-                Logger.i(TAG, "Overlay permission granted");
-                Toast.makeText(this, "Overlay permission granted!", Toast.LENGTH_SHORT).show();
-                
-                // Auto-start overlay after permission granted
-                new Handler().postDelayed(() -> {
-                    startFloatingOverlay();
-                }, 1000);
-            } else {
-                Logger.w(TAG, "Overlay permission denied");
-                Toast.makeText(this, "Overlay permission is required for floating controls", Toast.LENGTH_LONG).show();
-            }
-        }
-    }
-    
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        
-        // Cleanup overlay manager
+        // CLEANUP OVERLAY MANAGER
         if (overlayManager != null) {
             overlayManager.cleanup();
         }
+        
+        Logger.d(TAG, "MainActivity destroyed");
     }
 }
