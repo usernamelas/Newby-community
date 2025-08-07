@@ -95,7 +95,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="Fitur Aim"
-                    android:textColor="@color/overlay_text_primary"
+                    android:textColor="@color/overlay_primary_text"
                     android:textSize="15sp" />
 
                 <androidx.appcompat.widget.SwitchCompat
@@ -121,7 +121,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="Aim Root Mode"
-                    android:textColor="@color/overlay_text_primary"
+                    android:textColor="@color/overlay_primary_text"
                     android:textSize="15sp" />
 
                 <androidx.appcompat.widget.SwitchCompat
@@ -147,7 +147,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="Prediksi Bola"
-                    android:textColor="@color/overlay_text_primary"
+                    android:textColor="@color/overlay_primary_text"
                     android:textSize="15sp" />
 
                 <androidx.appcompat.widget.SwitchCompat
