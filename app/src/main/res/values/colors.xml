@@ -116,6 +116,10 @@
     <color name="overlay_text_primary">#FFFFFF</color>
     <color name="overlay_text_secondary">#CCFFFFFF</color>
     <color name="overlay_text_disabled">#66FFFFFF</color>
+    
+    <!-- Additional Overlay Text Colors (Missing) -->
+    <color name="overlay_primary_text">#FFFFFF</color>
+    <color name="overlay_secondary_text">#CCFFFFFF</color>
 
     <!-- Status Colors (Additional) -->
     <color name="status_warning">#FF9800</color>
