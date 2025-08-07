@@ -126,4 +126,68 @@
     <!-- white color -->
     <color name="white">#FFFFFF</color>
     
+    
+    <!-- Overlay Header Colors (Blue Gradient) -->
+    <color name="overlay_header_start">#2196F3</color>
+    <color name="overlay_header_center">#1976D2</color>
+    <color name="overlay_header_end">#1565C0</color>
+    
+    <!-- Overlay Content Colors (Dark Theme) -->
+    <color name="overlay_content_background">#1E1E1E</color>
+    <color name="overlay_content_background_light">#FFFFFF</color>
+    
+    <!-- Overlay Text Colors -->
+    <color name="overlay_text_primary">#FFFFFF</color>
+    <color name="overlay_text_primary_light">#212121</color>
+    <color name="overlay_text_secondary">#B0B0B0</color>
+    <color name="overlay_text_secondary_light">#757575</color>
+    
+    <!-- Overlay Button Colors -->
+    <color name="overlay_close_red">#FF5252</color>
+    <color name="overlay_exit_red">#F44336</color>
+    
+    <!-- Overlay Slider Colors -->
+    <color name="overlay_slider_blue_start">#64B5F6</color>
+    <color name="overlay_slider_blue_end">#42A5F5</color>
+    <color name="overlay_slider_progress">#2196F3</color>
+    <color name="overlay_slider_progress_bg">#424242</color>
+    <color name="overlay_slider_progress_bg_light">#E0E0E0</color>
+    <color name="overlay_slider_thumb">#FFFFFF</color>
+    
+    <!-- Overlay Switch Colors -->
+    <color name="overlay_switch_track_on">#4CAF50</color>
+    <color name="overlay_switch_track_off">#616161</color>
+    <color name="overlay_switch_track_off_light">#BDBDBD</color>
+    <color name="overlay_switch_thumb_on">#FFFFFF</color>
+    <color name="overlay_switch_thumb_off">#FAFAFA</color>
+    
+    <!-- Overlay Background Colors -->
+    <color name="overlay_background_shadow">#40000000</color>
+    <color name="overlay_floating_icon_bg">#FF2196F3</color>
+    
+    <!-- Overlay Divider -->
+    <color name="overlay_divider">#333333</color>
+    <color name="overlay_divider_light">#E0E0E0</color>
+    
+    <!-- Overlay Status Indicator -->
+    <color name="overlay_status_active">#4CAF50</color>
+    <color name="overlay_status_inactive">#9E9E9E</color>
+    <color name="overlay_status_warning">#FF9800</color>
+    <color name="overlay_status_error">#F44336</color>
+    
+    <!-- Overlay Ripple Effects -->
+    <color name="overlay_ripple_dark">#33FFFFFF</color>
+    <color name="overlay_ripple_light">#33000000</color>
+    
+    <!-- Theme-specific overlay colors -->
+    <!-- Dark Theme -->
+    <color name="overlay_bg_dark">#121212</color>
+    <color name="overlay_surface_dark">#1E1E1E</color>
+    <color name="overlay_surface_variant_dark">#2A2A2A</color>
+    
+    <!-- Light Theme -->
+    <color name="overlay_bg_light">#FAFAFA</color>
+    <color name="overlay_surface_light">#FFFFFF</color>
+    <color name="overlay_surface_variant_light">#F5F5F5</color>
+    
 </resources>

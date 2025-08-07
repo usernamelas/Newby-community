@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Overlay Custom Styles - Add to res/values/styles.xml -->
+<resources>
+
+    <!-- Overlay Switch Theme -->
+    <style name="OverlaySwitchTheme" parent="Widget.AppCompat.CompoundButton.Switch">
+        <item name="colorControlActivated">@color/overlay_switch_track_on</item>
+        <item name="colorSwitchThumbNormal">@color/overlay_switch_thumb_off</item>
+        <item name="android:colorForeground">@color/overlay_switch_track_off</item>
+        <item name="android:thumb">@drawable/overlay_switch_thumb</item>
+        <item name="android:track">@drawable/overlay_switch_track</item>
+    </style>
+
+    <!-- Overlay SeekBar Style -->
+    <style name="OverlaySeekBarStyle" parent="Widget.AppCompat.SeekBar">
+        <item name="android:progressDrawable">@drawable/overlay_slider_progress</item>
+        <item name="android:thumb">@drawable/overlay_slider_thumb</item>
+        <item name="android:splitTrack">false</item>
+        <item name="android:thumbOffset">0dp</item>
+        <item name="android:maxHeight">6dp</item>
+        <item name="android:minHeight">6dp</item>
+    </style>
+
+    <!-- Overlay Button Base Style -->
+    <style name="OverlayButtonStyle" parent="Widget.AppCompat.Button.Borderless">
+        <item name="android:background">@drawable/overlay_button_background</item>
+        <item name="android:textColor">@color/overlay_text_primary</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:minHeight">40dp</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+        <item name="android:layout_margin">4dp</item>
+    </style>
+
+    <!-- Overlay ImageButton Style -->
+    <style name="OverlayImageButtonStyle" parent="Widget.AppCompat.ImageButton">
+        <item name="android:background">@drawable/overlay_image_button_background</item>
+        <item name="android:scaleType">centerInside</item>
+        <item name="android:padding">8dp</item>
+    </style>
+
+    <!-- Overlay Text Styles -->
+    <style name="OverlayTextPrimary">
+        <item name="android:textColor">@color/overlay_text_primary</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="OverlayTextSecondary">
+        <item name="android:textColor">@color/overlay_text_secondary</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:fontFamily">sans-serif</item>
+    </style>
+
+    <style name="OverlayTextHeader">
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <!-- Overlay Card Style -->
+    <style name="OverlayCardStyle">
+        <item name="android:background">@drawable/overlay_card_background</item>
+        <item name="android:elevation">4dp</item>
+        <item name="android:layout_margin">8dp</item>
+        <item name="android:padding">12dp</item>
+    </style>
+
+    <!-- Theme-specific overlay styles -->
+    
+    <!-- Dark Theme Overlay Styles -->
+    <style name="OverlayDarkTheme">
+        <item name="overlayBackgroundColor">@color/overlay_bg_dark</item>
+        <item name="overlaySurfaceColor">@color/overlay_surface_dark</item>
+        <item name="overlayTextPrimaryColor">@color/overlay_text_primary</item>
+        <item name="overlayTextSecondaryColor">@color/overlay_text_secondary</item>
+        <item name="overlayDividerColor">@color/overlay_divider</item>
+        <item name="overlaySwitchTrackOff">@color/overlay_switch_track_off</item>
+        <item name="overlaySliderProgressBg">@color/overlay_slider_progress_bg</item>
+        <item name="overlayRippleColor">@color/overlay_ripple_dark</item>
+    </style>
+
+    <!-- Light Theme Overlay Styles -->
+    <style name="OverlayLightTheme">
+        <item name="overlayBackgroundColor">@color/overlay_bg_light</item>
+        <item name="overlaySurfaceColor">@color/overlay_surface_light</item>
+        <item name="overlayTextPrimaryColor">@color/overlay_text_primary_light</item>
+        <item name="overlayTextSecondaryColor">@color/overlay_text_secondary_light</item>
+        <item name="overlayDividerColor">@color/overlay_divider_light</item>
+        <item name="overlaySwitchTrackOff">@color/overlay_switch_track_off_light</item>
+        <item name="overlaySliderProgressBg">@color/overlay_slider_progress_bg_light</item>
+        <item name="overlayRippleColor">@color/overlay_ripple_light</item>
+    </style>
+
+</resources>

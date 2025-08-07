@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Full Overlay Layout - Sesuai design foto -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="320dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/overlay_full_background"
+    android:elevation="12dp">
+
+    <!-- Header Bar Biru dengan Gradient -->
+    <LinearLayout
+        android:id="@+id/header_container"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:background="@drawable/overlay_header_gradient"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="12dp">
+
+        <!-- Settings Button (Gear) -->
+        <ImageButton
+            android:id="@+id/btn_header_settings"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/overlay_header_button_bg"
+            android:src="@drawable/ic_settings"
+            android:tint="@color/white"
+            android:contentDescription="Settings"
+            android:scaleType="centerInside" />
+
+        <!-- App Name -->
+        <TextView
+            android:id="@+id/tv_app_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Pool Assistant"
+            android:textColor="@color/white"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp" />
+
+        <!-- 8-Ball Icon -->
+        <ImageView
+            android:id="@+id/iv_pool_ball"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/ic_pool_ball"
+            android:layout_marginEnd="12dp"
+            android:contentDescription="8-Ball Icon" />
+
+        <!-- Close Button (X) -->
+        <ImageButton
+            android:id="@+id/btn_header_close"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/overlay_header_button_bg"
+            android:src="@drawable/ic_close"
+            android:tint="@color/overlay_close_red"
+            android:contentDescription="Close to Icon Mode"
+            android:scaleType="centerInside" />
+
+    </LinearLayout>
+
+    <!-- Content Area Hitam -->
+    <LinearLayout
+        android:id="@+id/content_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/overlay_content_background"
+        android:padding="16dp">
+
+        <!-- Feature Toggles Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Toggle 1: Basic Aim -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Fitur Aim"
+                    android:textColor="@color/overlay_text_primary"
+                    android:textSize="15sp" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/switch_basic_aim"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:theme="@style/OverlaySwitchTheme"
+                    android:checked="true" />
+
+            </LinearLayout>
+
+            <!-- Toggle 2: Root Aim -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Aim Root Mode"
+                    android:textColor="@color/overlay_text_primary"
+                    android:textSize="15sp" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/switch_root_aim"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:theme="@style/OverlaySwitchTheme"
+                    android:checked="false" />
+
+            </LinearLayout>
+
+            <!-- Toggle 3: Prediction -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Prediksi Bola"
+                    android:textColor="@color/overlay_text_primary"
+                    android:textSize="15sp" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/switch_prediction"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:theme="@style/OverlaySwitchTheme"
+                    android:checked="true" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Opacity Slider Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/overlay_slider_section_bg"
+            android:padding="12dp">
+
+            <!-- Opacity Header -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="opacity"
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:background="@drawable/overlay_slider_header_bg"
+                android:padding="8dp"
+                android:gravity="center" />
+
+            <!-- Opacity Slider -->
+            <SeekBar
+                android:id="@+id/slider_opacity"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:max="100"
+                android:progress="80"
+                android:progressDrawable="@drawable/overlay_slider_progress"
+                android:thumb="@drawable/overlay_slider_thumb" />
+
+        </LinearLayout>
+
+        <!-- Line Thickness Slider Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/overlay_slider_section_bg"
+            android:padding="12dp">
+
+            <!-- Thickness Header -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="ketebalan garis"
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:background="@drawable/overlay_slider_header_bg"
+                android:padding="8dp"
+                android:gravity="center" />
+
+            <!-- Thickness Slider -->
+            <SeekBar
+                android:id="@+id/slider_line_thickness"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:max="20"
+                android:progress="5"
+                android:progressDrawable="@drawable/overlay_slider_progress"
+                android:thumb="@drawable/overlay_slider_thumb" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

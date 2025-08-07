@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Minimized Icon Layout - Floating icon mode -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="64dp"
+    android:layout_height="64dp"
+    android:background="@drawable/overlay_icon_background"
+    android:elevation="8dp">
+
+    <!-- Background Circle with Gradient -->
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/overlay_icon_circle_bg"
+        android:scaleType="centerCrop" />
+
+    <!-- 8-Ball Icon -->
+    <ImageView
+        android:id="@+id/iv_floating_icon"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_gravity="center"
+        android:src="@drawable/ic_pool_ball"
+        android:contentDescription="Pool Assistant Icon"
+        android:scaleType="centerInside" />
+
+    <!-- Status Indicator -->
+    <View
+        android:id="@+id/status_indicator"
+        android:layout_width="12dp"
+        android:layout_height="12dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="4dp"
+        android:background="@drawable/overlay_status_indicator_active" />
+
+    <!-- Ripple Effect on Touch -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:focusable="true" />
+
+</FrameLayout>
