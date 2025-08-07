@@ -15,6 +15,7 @@ import com.victory.poolassistant.utils.PermissionHelper;
 public class OverlayManager {
     
     private static final String TAG = "OverlayManager";
+    private static OverlayManager instance;
     
     private Context context;
     private OverlayWindowManager windowManager;
@@ -33,12 +34,13 @@ public class OverlayManager {
     private int defaultY = 100;
     
     /**
-     * Interface yang hilang - diperlukan oleh MainActivity
+     * Singleton getInstance method
      */
-    public interface OnOverlayStateChangeListener {
-        void onOverlayShown();
-        void onOverlayHidden();
-        void onOverlayStateChanged(boolean isVisible);
+    public static synchronized OverlayManager getInstance(Context context) {
+        if (instance == null) {
+            instance = new OverlayManager(context.getApplicationContext());
+        }
+        return instance;
     }
     
     public OverlayManager(Context context) {
@@ -49,10 +51,45 @@ public class OverlayManager {
     }
     
     /**
-     * Set listener for overlay state changes
+     * Interface for overlay state changes
+     */
+    public interface OnOverlayStateChangeListener {
+        void onOverlayStateChanged(boolean isShowing);
+        void onOverlayPermissionRequired();
+        void onOverlayError(String error);
+        void onOverlayServiceConnected();
+    }
+    
+    /**
+     * Set state change listener
      */
     public void setOnOverlayStateChangeListener(OnOverlayStateChangeListener listener) {
         this.stateChangeListener = listener;
+    }
+    
+    /**
+     * Start overlay (public method for MainActivity)
+     */
+    public boolean startOverlay() {
+        return showOverlay(OverlayView.OverlayState.FULL);
+    }
+    
+    /**
+     * Stop overlay (public method for MainActivity)
+     */
+    public void stopOverlay() {
+        hideOverlay();
+    }
+    
+    /**
+     * Toggle overlay (public method for MainActivity)
+     */
+    public void toggleOverlay() {
+        if (isOverlayShowing) {
+            stopOverlay();
+        } else {
+            startOverlay();
+        }
     }
     
     /**
@@ -63,6 +100,11 @@ public class OverlayManager {
         if (overlayView != null) {
             // Update service reference in view
             // This will be handled in OverlayView constructor
+        }
+        
+        // Notify listener
+        if (stateChangeListener != null) {
+            stateChangeListener.onOverlayServiceConnected();
         }
     }
     
@@ -79,6 +121,10 @@ public class OverlayManager {
     public void requestOverlayPermission() {
         if (!hasOverlayPermission()) {
             Logger.d(TAG, "Requesting overlay permission");
+            if (stateChangeListener != null) {
+                stateChangeListener.onOverlayPermissionRequired();
+            }
+            
             Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(intent);
@@ -114,18 +160,20 @@ public class OverlayManager {
             windowManager.addOverlayView(overlayView, params);
             
             isOverlayShowing = true;
+            Logger.d(TAG, "Overlay shown successfully with state: " + initialState);
             
             // Notify listener
             if (stateChangeListener != null) {
-                stateChangeListener.onOverlayShown();
                 stateChangeListener.onOverlayStateChanged(true);
             }
             
-            Logger.d(TAG, "Overlay shown successfully with state: " + initialState);
             return true;
             
         } catch (Exception e) {
             Logger.e(TAG, "Failed to show overlay", e);
+            if (stateChangeListener != null) {
+                stateChangeListener.onOverlayError("Failed to show overlay: " + e.getMessage());
+            }
             return false;
         }
     }
@@ -151,17 +199,18 @@ public class OverlayManager {
             overlayView = null;
             
             isOverlayShowing = false;
+            Logger.d(TAG, "Overlay hidden successfully");
             
             // Notify listener
             if (stateChangeListener != null) {
-                stateChangeListener.onOverlayHidden();
                 stateChangeListener.onOverlayStateChanged(false);
             }
             
-            Logger.d(TAG, "Overlay hidden successfully");
-            
         } catch (Exception e) {
             Logger.e(TAG, "Failed to hide overlay", e);
+            if (stateChangeListener != null) {
+                stateChangeListener.onOverlayError("Failed to hide overlay: " + e.getMessage());
+            }
         }
     }
     
@@ -182,11 +231,6 @@ public class OverlayManager {
             // Update window parameters for new state
             WindowManager.LayoutParams params = createLayoutParams(newState);
             updateOverlayPosition(lastX, lastY, params);
-            
-            // Notify listener
-            if (stateChangeListener != null) {
-                stateChangeListener.onOverlayStateChanged(isOverlayShowing);
-            }
             
             Logger.d(TAG, "Overlay state updated to: " + newState);
             
@@ -428,7 +472,8 @@ public class OverlayManager {
         }
         
         overlayService = null;
-        context = null;
         stateChangeListener = null;
+        context = null;
+        instance = null;
     }
 }

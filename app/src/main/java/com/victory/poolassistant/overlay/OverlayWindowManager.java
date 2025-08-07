@@ -39,6 +39,78 @@ public class OverlayWindowManager {
     }
     
     /**
+     * Create default overlay layout parameters (MISSING METHOD)
+     */
+    public WindowManager.LayoutParams createOverlayLayoutParams() {
+        return createLayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT
+        );
+    }
+    
+    /**
+     * Add overlay view to window manager (MISSING METHOD)
+     */
+    public void addOverlayView(OverlayView overlayView, WindowManager.LayoutParams params) {
+        try {
+            windowManager.addView(overlayView, params);
+            Logger.d(TAG, "Overlay view added successfully");
+        } catch (Exception e) {
+            Logger.e(TAG, "Failed to add overlay view", e);
+            throw e;
+        }
+    }
+    
+    /**
+     * Remove overlay view from window manager (MISSING METHOD)
+     */
+    public void removeOverlayView(OverlayView overlayView) {
+        try {
+            windowManager.removeView(overlayView);
+            Logger.d(TAG, "Overlay view removed successfully");
+        } catch (Exception e) {
+            Logger.e(TAG, "Failed to remove overlay view", e);
+            throw e;
+        }
+    }
+    
+    /**
+     * Update overlay view layout (MISSING METHOD)
+     */
+    public void updateOverlayView(OverlayView overlayView, WindowManager.LayoutParams params) {
+        try {
+            windowManager.updateViewLayout(overlayView, params);
+            Logger.d(TAG, "Overlay view updated successfully");
+        } catch (Exception e) {
+            Logger.e(TAG, "Failed to update overlay view", e);
+            throw e;
+        }
+    }
+    
+    /**
+     * Get screen size as array (MISSING METHOD)
+     */
+    public int[] getScreenSize() {
+        return new int[]{screenWidth, screenHeight};
+    }
+    
+    /**
+     * Get status bar height (Make PUBLIC instead of PRIVATE)
+     */
+    public int getStatusBarHeight() {
+        return statusBarHeight;
+    }
+    
+    /**
+     * Cleanup resources (MISSING METHOD)
+     */
+    public void cleanup() {
+        Logger.d(TAG, "OverlayWindowManager cleanup completed");
+        // Currently no specific cleanup needed
+        // Can be extended for future resource management
+    }
+    
+    /**
      * Create optimal layout parameters untuk overlay window
      */
     public WindowManager.LayoutParams createLayoutParams(int width, int height) {
@@ -113,7 +185,7 @@ public class OverlayWindowManager {
             
             screenWidth = size.x;
             screenHeight = size.y;
-            statusBarHeight = getStatusBarHeight();
+            statusBarHeight = calculateStatusBarHeight();
             
             Logger.d(TAG, "Screen info updated: " + screenWidth + "x" + screenHeight + 
                      ", status bar: " + statusBarHeight);
@@ -121,9 +193,9 @@ public class OverlayWindowManager {
     }
     
     /**
-     * Get status bar height
+     * Calculate status bar height
      */
-    private int getStatusBarHeight() {
+    private int calculateStatusBarHeight() {
         int resourceId = context.getResources().getIdentifier(
             "status_bar_height", "dimen", "android");
         
