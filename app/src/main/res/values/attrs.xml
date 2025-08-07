@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Overlay Custom Attributes -->
+    <declare-styleable name="OverlayTheme">
+        <!-- Overlay Background Colors -->
+        <attr name="overlayBackgroundColor" format="color|reference" />
+        <attr name="overlaySurfaceColor" format="color|reference" />
+        <attr name="overlaySurfaceVariantColor" format="color|reference" />
+        
+        <!-- Overlay Text Colors -->
+        <attr name="overlayTextPrimaryColor" format="color|reference" />
+        <attr name="overlayTextSecondaryColor" format="color|reference" />
+        <attr name="overlayTextDisabledColor" format="color|reference" />
+        
+        <!-- Overlay UI Element Colors -->
+        <attr name="overlayDividerColor" format="color|reference" />
+        <attr name="overlayRippleColor" format="color|reference" />
+        
+        <!-- Overlay Switch Colors -->
+        <attr name="overlaySwitchTrackOn" format="color|reference" />
+        <attr name="overlaySwitchTrackOff" format="color|reference" />
+        <attr name="overlaySwitchThumbOn" format="color|reference" />
+        <attr name="overlaySwitchThumbOff" format="color|reference" />
+        
+        <!-- Overlay Slider Colors -->
+        <attr name="overlaySliderProgress" format="color|reference" />
+        <attr name="overlaySliderProgressBg" format="color|reference" />
+        <attr name="overlaySliderThumb" format="color|reference" />
+        
+        <!-- Overlay Status Colors -->
+        <attr name="overlayStatusActive" format="color|reference" />
+        <attr name="overlayStatusInactive" format="color|reference" />
+        <attr name="overlayStatusWarning" format="color|reference" />
+        <attr name="overlayStatusError" format="color|reference" />
+        
+        <!-- Overlay Button Colors -->
+        <attr name="overlayButtonBackground" format="color|reference" />
+        <attr name="overlayButtonTextColor" format="color|reference" />
+        <attr name="overlayCloseButtonColor" format="color|reference" />
+        
+        <!-- Overlay Header Colors -->
+        <attr name="overlayHeaderBackground" format="color|reference" />
+        <attr name="overlayHeaderTextColor" format="color|reference" />
+        
+        <!-- Overlay Card Colors -->
+        <attr name="overlayCardBackground" format="color|reference" />
+        <attr name="overlayCardStroke" format="color|reference" />
+    </declare-styleable>
+
+    <!-- Pool Assistant Custom Attributes -->
+    <declare-styleable name="PoolAssistantTheme">
+        <!-- Primary Colors -->
+        <attr name="poolPrimaryColor" format="color|reference" />
+        <attr name="poolPrimaryVariantColor" format="color|reference" />
+        <attr name="poolOnPrimaryColor" format="color|reference" />
+        
+        <!-- Secondary Colors -->
+        <attr name="poolSecondaryColor" format="color|reference" />
+        <attr name="poolSecondaryVariantColor" format="color|reference" />
+        <attr name="poolOnSecondaryColor" format="color|reference" />
+        
+        <!-- Status Colors -->
+        <attr name="poolStatusActiveColor" format="color|reference" />
+        <attr name="poolStatusInactiveColor" format="color|reference" />
+        <attr name="poolStatusReadyColor" format="color|reference" />
+        <attr name="poolStatusScanningColor" format="color|reference" />
+        <attr name="poolStatusCheckingColor" format="color|reference" />
+        <attr name="poolStatusErrorColor" format="color|reference" />
+        
+        <!-- Trajectory Colors -->
+        <attr name="trajectoryGreenColor" format="color|reference" />
+        <attr name="trajectoryBlueColor" format="color|reference" />
+        <attr name="trajectoryRedColor" format="color|reference" />
+        <attr name="trajectoryYellowColor" format="color|reference" />
+        <attr name="trajectoryPurpleColor" format="color|reference" />
+        <attr name="trajectoryCyanColor" format="color|reference" />
+    </declare-styleable>
+
+    <!-- Custom View Attributes -->
+    <declare-styleable name="CustomView">
+        <attr name="customBackground" format="color|reference" />
+        <attr name="customTextColor" format="color|reference" />
+        <attr name="customBorderColor" format="color|reference" />
+        <attr name="customBorderWidth" format="dimension" />
+        <attr name="customCornerRadius" format="dimension" />
+    </declare-styleable>
+
+    <!-- Status Indicator Attributes -->
+    <declare-styleable name="StatusIndicator">
+        <attr name="indicatorColor" format="color|reference" />
+        <attr name="indicatorSize" format="dimension" />
+        <attr name="indicatorType" format="enum">
+            <enum name="circle" value="0" />
+            <enum name="square" value="1" />
+            <enum name="diamond" value="2" />
+        </attr>
+        <attr name="animationDuration" format="integer" />
+        <attr name="pulseAnimation" format="boolean" />
+    </declare-styleable>
+
+    <!-- Floating Button Attributes -->
+    <declare-styleable name="FloatingButton">
+        <attr name="fabBackgroundColor" format="color|reference" />
+        <attr name="fabIconColor" format="color|reference" />
+        <attr name="fabSize" format="enum">
+            <enum name="mini" value="0" />
+            <enum name="normal" value="1" />
+            <enum name="large" value="2" />
+        </attr>
+        <attr name="fabElevation" format="dimension" />
+        <attr name="fabRippleColor" format="color|reference" />
+    </declare-styleable>
+
+    <!-- Progress Bar Attributes -->
+    <declare-styleable name="CustomProgressBar">
+        <attr name="progressColor" format="color|reference" />
+        <attr name="progressBackgroundColor" format="color|reference" />
+        <attr name="progressStrokeWidth" format="dimension" />
+        <attr name="progressStartAngle" format="integer" />
+        <attr name="progressSweepAngle" format="integer" />
+        <attr name="progressText" format="string" />
+        <attr name="progressTextColor" format="color|reference" />
+        <attr name="progressTextSize" format="dimension" />
+    </declare-styleable>
+
+    <!-- Card View Attributes -->
+    <declare-styleable name="CustomCardView">
+        <attr name="cardBackgroundColor" format="color|reference" />
+        <attr name="cardStrokeColor" format="color|reference" />
+        <attr name="cardStrokeWidth" format="dimension" />
+        <attr name="cardCornerRadius" format="dimension" />
+        <attr name="cardElevation" format="dimension" />
+        <attr name="cardHeaderColor" format="color|reference" />
+        <attr name="cardHeaderHeight" format="dimension" />
+    </declare-styleable>
+
+    <!-- Switch Attributes -->
+    <declare-styleable name="CustomSwitch">
+        <attr name="switchTrackOnColor" format="color|reference" />
+        <attr name="switchTrackOffColor" format="color|reference" />
+        <attr name="switchThumbOnColor" format="color|reference" />
+        <attr name="switchThumbOffColor" format="color|reference" />
+        <attr name="switchTextOnColor" format="color|reference" />
+        <attr name="switchTextOffColor" format="color|reference" />
+    </declare-styleable>
+
+    <!-- Slider Attributes -->
+    <declare-styleable name="CustomSlider">
+        <attr name="sliderProgressColor" format="color|reference" />
+        <attr name="sliderProgressBackgroundColor" format="color|reference" />
+        <attr name="sliderThumbColor" format="color|reference" />
+        <attr name="sliderThumbSize" format="dimension" />
+        <attr name="sliderTrackHeight" format="dimension" />
+        <attr name="sliderMinValue" format="integer" />
+        <attr name="sliderMaxValue" format="integer" />
+        <attr name="sliderStepSize" format="integer" />
+    </declare-styleable>
+
+    <!-- Button Attributes -->
+    <declare-styleable name="CustomButton">
+        <attr name="buttonBackgroundColor" format="color|reference" />
+        <attr name="buttonTextColor" format="color|reference" />
+        <attr name="buttonBorderColor" format="color|reference" />
+        <attr name="buttonBorderWidth" format="dimension" />
+        <attr name="buttonCornerRadius" format="dimension" />
+        <attr name="buttonElevation" format="dimension" />
+        <attr name="buttonRippleColor" format="color|reference" />
+        <attr name="buttonStyle" format="enum">
+            <enum name="filled" value="0" />
+            <enum name="outlined" value="1" />
+            <enum name="text" value="2" />
+        </attr>
+    </declare-styleable>
+
+    <!-- Text View Attributes -->
+    <declare-styleable name="CustomTextView">
+        <attr name="customTextColorPrimary" format="color|reference" />
+        <attr name="customTextColorSecondary" format="color|reference" />
+        <attr name="customTextColorDisabled" format="color|reference" />
+        <attr name="customTextSizePrimary" format="dimension" />
+        <attr name="customTextSizeSecondary" format="dimension" />
+        <attr name="customFontFamily" format="string" />
+        <attr name="customTextStyle" format="enum">
+            <enum name="normal" value="0" />
+            <enum name="bold" value="1" />
+            <enum name="italic" value="2" />
+        </attr>
+    </declare-styleable>
+</resources>

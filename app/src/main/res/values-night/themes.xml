@@ -29,6 +29,58 @@
         <!-- Navigation bar -->
         <item name="android:navigationBarColor">@color/color_background_dark</item>
         <item name="android:windowLightNavigationBar">false</item>
+        
+        <!-- Custom Pool Assistant Attributes (Dark) -->
+        <item name="poolPrimaryColor">@color/color_primary_dark</item>
+        <item name="poolPrimaryVariantColor">@color/color_primary_variant_dark</item>
+        <item name="poolOnPrimaryColor">@color/color_on_primary_dark</item>
+        <item name="poolSecondaryColor">@color/color_secondary_dark</item>
+        <item name="poolSecondaryVariantColor">@color/color_secondary_variant_dark</item>
+        <item name="poolOnSecondaryColor">@color/color_on_secondary_dark</item>
+        
+        <!-- Status Colors -->
+        <item name="poolStatusActiveColor">@color/status_active</item>
+        <item name="poolStatusInactiveColor">@color/status_inactive</item>
+        <item name="poolStatusReadyColor">@color/status_ready</item>
+        <item name="poolStatusScanningColor">@color/status_scanning</item>
+        <item name="poolStatusCheckingColor">@color/status_checking</item>
+        <item name="poolStatusErrorColor">@color/status_error</item>
+        
+        <!-- Trajectory Colors -->
+        <item name="trajectoryGreenColor">@color/trajectory_green</item>
+        <item name="trajectoryBlueColor">@color/trajectory_blue</item>
+        <item name="trajectoryRedColor">@color/trajectory_red</item>
+        <item name="trajectoryYellowColor">@color/trajectory_yellow</item>
+        <item name="trajectoryPurpleColor">@color/trajectory_purple</item>
+        <item name="trajectoryCyanColor">@color/trajectory_cyan</item>
+        
+        <!-- Overlay Theme Attributes (Dark) -->
+        <item name="overlayBackgroundColor">@color/overlay_content_background</item>
+        <item name="overlaySurfaceColor">@color/overlay_surface_dark</item>
+        <item name="overlaySurfaceVariantColor">@color/overlay_surface_variant_dark</item>
+        <item name="overlayTextPrimaryColor">@color/overlay_text_primary</item>
+        <item name="overlayTextSecondaryColor">@color/overlay_text_secondary</item>
+        <item name="overlayTextDisabledColor">@color/overlay_text_disabled</item>
+        <item name="overlayDividerColor">@color/overlay_divider</item>
+        <item name="overlayRippleColor">@color/overlay_ripple_dark</item>
+        <item name="overlaySwitchTrackOn">@color/overlay_switch_track_on</item>
+        <item name="overlaySwitchTrackOff">@color/overlay_switch_track_off</item>
+        <item name="overlaySwitchThumbOn">@color/overlay_switch_thumb_on</item>
+        <item name="overlaySwitchThumbOff">@color/overlay_switch_thumb_off</item>
+        <item name="overlaySliderProgress">@color/overlay_slider_progress</item>
+        <item name="overlaySliderProgressBg">@color/overlay_slider_progress_bg</item>
+        <item name="overlaySliderThumb">@color/overlay_slider_thumb</item>
+        <item name="overlayStatusActive">@color/overlay_status_active</item>
+        <item name="overlayStatusInactive">@color/overlay_status_inactive</item>
+        <item name="overlayStatusWarning">@color/overlay_status_warning</item>
+        <item name="overlayStatusError">@color/overlay_status_error</item>
+        <item name="overlayButtonBackground">@color/color_primary_dark</item>
+        <item name="overlayButtonTextColor">@color/color_on_primary_dark</item>
+        <item name="overlayCloseButtonColor">@color/overlay_close_red</item>
+        <item name="overlayHeaderBackground">@color/overlay_header_start</item>
+        <item name="overlayHeaderTextColor">@color/white</item>
+        <item name="overlayCardBackground">@color/card_background_dark</item>
+        <item name="overlayCardStroke">@color/card_stroke_dark</item>
     </style>
 
     <!-- Dark theme explicitly -->
@@ -47,5 +99,28 @@
         <item name="colorOnError">@color/color_on_error</item>
         <item name="android:statusBarColor">@color/color_background_dark</item>
         <item name="android:windowLightStatusBar">false</item>
+        
+        <!-- Dark Theme Overlay Attributes -->
+        <item name="overlayBackgroundColor">@color/overlay_content_background</item>
+        <item name="overlaySurfaceColor">@color/overlay_surface_dark</item>
+        <item name="overlaySurfaceVariantColor">@color/overlay_surface_variant_dark</item>
+        <item name="overlayTextPrimaryColor">@color/overlay_text_primary</item>
+        <item name="overlayTextSecondaryColor">@color/overlay_text_secondary</item>
+        <item name="overlayTextDisabledColor">@color/overlay_text_disabled</item>
+        <item name="overlayDividerColor">@color/overlay_divider</item>
+        <item name="overlayRippleColor">@color/overlay_ripple_dark</item>
+        <item name="overlaySwitchTrackOff">@color/overlay_switch_track_off</item>
+        <item name="overlaySliderProgressBg">@color/overlay_slider_progress_bg</item>
+    </style>
+    
+    <!-- Dark Overlay specific theme -->
+    <style name="Theme.PoolAssistant.Overlay" parent="Theme.PoolAssistant">
+        <!-- Overlay specific styling -->
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowAnimationStyle">@null</item>
     </style>
 </resources>
