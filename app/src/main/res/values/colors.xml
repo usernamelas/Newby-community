@@ -115,7 +115,7 @@
     <color name="overlay_surface">#33FFFFFF</color>
 
     <!-- Overlay Text Colors -->
-    <color name="overlay_text_primary">#FFFFFF</color>
+    
     <color name="overlay_text_secondary">#CCFFFFFF</color>
     <color name="overlay_text_disabled">#66FFFFFF</color>
 
