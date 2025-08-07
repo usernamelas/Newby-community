@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Overlay Custom Styles - SIMPLIFIED VERSION -->
+<!-- Overlay Custom Styles - MERGED COMPLETE VERSION -->
 <resources>
 
     <!-- Overlay Switch Theme -->
@@ -7,6 +7,8 @@
         <item name="colorControlActivated">@color/overlay_switch_track_on</item>
         <item name="colorSwitchThumbNormal">@color/overlay_switch_thumb_off</item>
         <item name="android:colorForeground">@color/overlay_switch_track_off</item>
+        <item name="android:thumb">@drawable/overlay_switch_thumb</item>
+        <item name="android:track">@drawable/overlay_switch_track</item>
     </style>
 
     <!-- Overlay SeekBar Style -->
@@ -63,6 +65,32 @@
         <item name="android:elevation">4dp</item>
         <item name="android:layout_margin">8dp</item>
         <item name="android:padding">12dp</item>
+    </style>
+
+    <!-- Theme-specific overlay styles - YANG HILANG DI GITHUB! -->
+    
+    <!-- Dark Theme Overlay Styles -->
+    <style name="OverlayDarkTheme">
+        <item name="overlayBackgroundColor">@color/overlay_bg_dark</item>
+        <item name="overlaySurfaceColor">@color/overlay_surface_dark</item>
+        <item name="overlayTextPrimaryColor">@color/overlay_text_primary</item>
+        <item name="overlayTextSecondaryColor">@color/overlay_text_secondary</item>
+        <item name="overlayDividerColor">@color/overlay_divider</item>
+        <item name="overlaySwitchTrackOff">@color/overlay_switch_track_off</item>
+        <item name="overlaySliderProgressBg">@color/overlay_slider_progress_bg</item>
+        <item name="overlayRippleColor">@color/overlay_ripple_dark</item>
+    </style>
+
+    <!-- Light Theme Overlay Styles -->
+    <style name="OverlayLightTheme">
+        <item name="overlayBackgroundColor">@color/overlay_bg_light</item>
+        <item name="overlaySurfaceColor">@color/overlay_surface_light</item>
+        <item name="overlayTextPrimaryColor">@color/overlay_text_primary_light</item>
+        <item name="overlayTextSecondaryColor">@color/overlay_text_secondary_light</item>
+        <item name="overlayDividerColor">@color/overlay_divider_light</item>
+        <item name="overlaySwitchTrackOff">@color/overlay_switch_track_off_light</item>
+        <item name="overlaySliderProgressBg">@color/overlay_slider_progress_bg_light</item>
+        <item name="overlayRippleColor">@color/overlay_ripple_light</item>
     </style>
 
 </resources>
