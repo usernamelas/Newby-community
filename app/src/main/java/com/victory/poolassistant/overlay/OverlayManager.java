@@ -20,6 +20,7 @@ public class OverlayManager {
     private OverlayWindowManager windowManager;
     private OverlayView overlayView;
     private FloatingOverlayService overlayService;
+    private OnOverlayStateChangeListener stateChangeListener;
     
     // State tracking
     private boolean isOverlayShowing = false;
@@ -31,11 +32,27 @@ public class OverlayManager {
     private int defaultX = 100;
     private int defaultY = 100;
     
+    /**
+     * Interface yang hilang - diperlukan oleh MainActivity
+     */
+    public interface OnOverlayStateChangeListener {
+        void onOverlayShown();
+        void onOverlayHidden();
+        void onOverlayStateChanged(boolean isVisible);
+    }
+    
     public OverlayManager(Context context) {
         this.context = context;
         this.windowManager = new OverlayWindowManager(context);
         
         Logger.d(TAG, "OverlayManager initialized");
+    }
+    
+    /**
+     * Set listener for overlay state changes
+     */
+    public void setOnOverlayStateChangeListener(OnOverlayStateChangeListener listener) {
+        this.stateChangeListener = listener;
     }
     
     /**
@@ -97,6 +114,13 @@ public class OverlayManager {
             windowManager.addOverlayView(overlayView, params);
             
             isOverlayShowing = true;
+            
+            // Notify listener
+            if (stateChangeListener != null) {
+                stateChangeListener.onOverlayShown();
+                stateChangeListener.onOverlayStateChanged(true);
+            }
+            
             Logger.d(TAG, "Overlay shown successfully with state: " + initialState);
             return true;
             
@@ -127,6 +151,13 @@ public class OverlayManager {
             overlayView = null;
             
             isOverlayShowing = false;
+            
+            // Notify listener
+            if (stateChangeListener != null) {
+                stateChangeListener.onOverlayHidden();
+                stateChangeListener.onOverlayStateChanged(false);
+            }
+            
             Logger.d(TAG, "Overlay hidden successfully");
             
         } catch (Exception e) {
@@ -151,6 +182,11 @@ public class OverlayManager {
             // Update window parameters for new state
             WindowManager.LayoutParams params = createLayoutParams(newState);
             updateOverlayPosition(lastX, lastY, params);
+            
+            // Notify listener
+            if (stateChangeListener != null) {
+                stateChangeListener.onOverlayStateChanged(isOverlayShowing);
+            }
             
             Logger.d(TAG, "Overlay state updated to: " + newState);
             
@@ -393,5 +429,6 @@ public class OverlayManager {
         
         overlayService = null;
         context = null;
+        stateChangeListener = null;
     }
 }

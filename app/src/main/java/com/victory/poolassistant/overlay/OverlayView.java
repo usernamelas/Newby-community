@@ -22,6 +22,8 @@ import com.victory.poolassistant.R;
 import com.victory.poolassistant.core.Logger;
 import com.victory.poolassistant.utils.ThemeManager;
 
+import android.widget.ImageView;
+
 /**
  * Enhanced OverlayView dengan 3-state system:
  * - FULL: Full overlay dengan controls (overlay_full_layout.xml)
@@ -120,6 +122,10 @@ public class OverlayView extends LinearLayout {
         }
     }
     
+    
+    
+        
+        
     /**
      * Setup all layout containers
      */
