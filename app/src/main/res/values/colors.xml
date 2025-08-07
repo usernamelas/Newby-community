@@ -1,10 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    
-    <!-- ========================================= -->
-    <!-- EXISTING COLORS - PRESERVED AS-IS -->
-    <!-- ========================================= -->
-    
     <!-- Primary Brand Colors -->
     <color name="color_primary">#1976D2</color>
     <color name="color_primary_variant">#1565C0</color>
@@ -111,24 +106,36 @@
     <color name="ripple_surface">#33000000</color>
     <color name="ripple_surface_dark">#33FFFFFF</color>
     
-    <!-- ========================================= -->
-    <!-- NEW OVERLAY COLORS - ADDED FOR 3-STATE SYSTEM -->
-    <!-- ========================================= -->
+    <!-- Overlay Colors -->
+    <color name="overlay_primary">#4CAF50</color>
+    <color name="overlay_primary_dark">#388E3C</color>
+    <color name="overlay_background">#E8000000</color>
+    <color name="overlay_surface">#33FFFFFF</color>
+
+    <!-- Overlay Text Colors -->
+    <color name="overlay_text_primary">#FFFFFF</color>
+    <color name="overlay_text_secondary">#CCFFFFFF</color>
+    <color name="overlay_text_disabled">#66FFFFFF</color>
+
+    <!-- Status Colors (Additional) -->
+    <color name="status_warning">#FF9800</color>
+    <color name="status_info">#2196F3</color>
+    
+    <!-- White Color -->
+    <color name="white">#FFFFFF</color>
     
     <!-- Overlay Header Colors (Blue Gradient) -->
     <color name="overlay_header_start">#2196F3</color>
     <color name="overlay_header_center">#1976D2</color>
     <color name="overlay_header_end">#1565C0</color>
     
-    <!-- Overlay Content Colors -->
-    <color name="overlay_content_bg">#1E1E1E</color>
-    <color name="overlay_content_bg_light">#FFFFFF</color>
+    <!-- Overlay Content Colors (Dark Theme) -->
+    <color name="overlay_content_background">#1E1E1E</color>
+    <color name="overlay_content_background_light">#FFFFFF</color>
     
-    <!-- Overlay Text Colors -->
-    <color name="overlay_primary_text">#FFFFFF</color>
-    <color name="overlay_primary_text_light">#212121</color>
-    <color name="overlay_secondary_text">#B0B0B0</color>
-    <color name="overlay_secondary_text_light">#757575</color>
+    <!-- Overlay Text Colors (Light Theme) -->
+    <color name="overlay_text_primary_light">#212121</color>
+    <color name="overlay_text_secondary_light">#757575</color>
     
     <!-- Overlay Button Colors -->
     <color name="overlay_close_red">#FF5252</color>
@@ -150,38 +157,31 @@
     <color name="overlay_switch_thumb_off">#FAFAFA</color>
     
     <!-- Overlay Background Colors -->
-    <color name="overlay_shadow">#40000000</color>
+    <color name="overlay_background_shadow">#40000000</color>
     <color name="overlay_floating_icon_bg">#FF2196F3</color>
     
     <!-- Overlay Divider -->
-    <color name="overlay_divider_color">#333333</color>
-    <color name="overlay_divider_color_light">#E0E0E0</color>
+    <color name="overlay_divider">#333333</color>
+    <color name="overlay_divider_light">#E0E0E0</color>
     
     <!-- Overlay Status Indicator -->
-    <color name="overlay_status_active_color">#4CAF50</color>
-    <color name="overlay_status_inactive_color">#9E9E9E</color>
-    <color name="overlay_status_warning_color">#FF9800</color>
-    <color name="overlay_status_error_color">#F44336</color>
+    <color name="overlay_status_active">#4CAF50</color>
+    <color name="overlay_status_inactive">#9E9E9E</color>
+    <color name="overlay_status_warning">#FF9800</color>
+    <color name="overlay_status_error">#F44336</color>
     
     <!-- Overlay Ripple Effects -->
-    <color name="overlay_ripple_dark_color">#33FFFFFF</color>
-    <color name="overlay_ripple_light_color">#33000000</color>
+    <color name="overlay_ripple_dark">#33FFFFFF</color>
+    <color name="overlay_ripple_light">#33000000</color>
     
-    <!-- Theme-specific Overlay Colors -->
+    <!-- Theme-specific overlay colors -->
     <!-- Dark Theme -->
-    <color name="overlay_bg_dark_theme">#121212</color>
-    <color name="overlay_surface_dark_theme">#1E1E1E</color>
-    <color name="overlay_surface_variant_dark_theme">#2A2A2A</color>
+    <color name="overlay_bg_dark">#121212</color>
+    <color name="overlay_surface_dark">#1E1E1E</color>
+    <color name="overlay_surface_variant_dark">#2A2A2A</color>
     
     <!-- Light Theme -->
-    <color name="overlay_bg_light_theme">#FAFAFA</color>
-    <color name="overlay_surface_light_theme">#FFFFFF</color>
-    <color name="overlay_surface_variant_light_theme">#F5F5F5</color>
-    
-    
-    
-    
-    
-    <color name="white">#FFFFFF</color>
-    
+    <color name="overlay_bg_light">#FAFAFA</color>
+    <color name="overlay_surface_light">#FFFFFF</color>
+    <color name="overlay_surface_variant_light">#F5F5F5</color>
 </resources>
