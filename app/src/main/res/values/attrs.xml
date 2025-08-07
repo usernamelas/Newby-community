@@ -99,16 +99,16 @@
     </declare-styleable>
 
     <!-- Floating Button Attributes -->
-    <declare-styleable name="FloatingButton">
-        <attr name="fabBackgroundColor" format="color|reference" />
-        <attr name="fabIconColor" format="color|reference" />
-        <attr name="fabSize" format="enum">
+    <declare-styleable name="CustomFloatingButton">
+        <attr name="customFabBackgroundColor" format="color|reference" />
+        <attr name="customFabIconColor" format="color|reference" />
+        <attr name="customFabSize" format="enum">
             <enum name="mini" value="0" />
             <enum name="normal" value="1" />
             <enum name="large" value="2" />
         </attr>
-        <attr name="fabElevation" format="dimension" />
-        <attr name="fabRippleColor" format="color|reference" />
+        <attr name="customFabElevation" format="dimension" />
+        <attr name="customFabRippleColor" format="color|reference" />
     </declare-styleable>
 
     <!-- Progress Bar Attributes -->
@@ -157,15 +157,15 @@
     </declare-styleable>
 
     <!-- Button Attributes -->
-    <declare-styleable name="CustomButton">
-        <attr name="buttonBackgroundColor" format="color|reference" />
-        <attr name="buttonTextColor" format="color|reference" />
-        <attr name="buttonBorderColor" format="color|reference" />
-        <attr name="buttonBorderWidth" format="dimension" />
-        <attr name="buttonCornerRadius" format="dimension" />
-        <attr name="buttonElevation" format="dimension" />
-        <attr name="buttonRippleColor" format="color|reference" />
-        <attr name="buttonStyle" format="enum">
+    <declare-styleable name="PoolAssistantButton">
+        <attr name="poolButtonBackgroundColor" format="color|reference" />
+        <attr name="poolButtonTextColor" format="color|reference" />
+        <attr name="poolButtonBorderColor" format="color|reference" />
+        <attr name="poolButtonBorderWidth" format="dimension" />
+        <attr name="poolButtonCornerRadius" format="dimension" />
+        <attr name="poolButtonElevation" format="dimension" />
+        <attr name="poolButtonRippleColor" format="color|reference" />
+        <attr name="poolButtonStyle" format="enum">
             <enum name="filled" value="0" />
             <enum name="outlined" value="1" />
             <enum name="text" value="2" />
@@ -173,14 +173,14 @@
     </declare-styleable>
 
     <!-- Text View Attributes -->
-    <declare-styleable name="CustomTextView">
-        <attr name="customTextColorPrimary" format="color|reference" />
-        <attr name="customTextColorSecondary" format="color|reference" />
-        <attr name="customTextColorDisabled" format="color|reference" />
-        <attr name="customTextSizePrimary" format="dimension" />
-        <attr name="customTextSizeSecondary" format="dimension" />
-        <attr name="customFontFamily" format="string" />
-        <attr name="customTextStyle" format="enum">
+    <declare-styleable name="PoolAssistantTextView">
+        <attr name="poolTextColorPrimary" format="color|reference" />
+        <attr name="poolTextColorSecondary" format="color|reference" />
+        <attr name="poolTextColorDisabled" format="color|reference" />
+        <attr name="poolTextSizePrimary" format="dimension" />
+        <attr name="poolTextSizeSecondary" format="dimension" />
+        <attr name="poolFontFamily" format="string" />
+        <attr name="poolTextStyle" format="enum">
             <enum name="normal" value="0" />
             <enum name="bold" value="1" />
             <enum name="italic" value="2" />
