@@ -25,21 +25,20 @@ import com.google.android.material.snackbar.Snackbar;
 import com.victory.poolassistant.core.AppConfig;
 import com.victory.poolassistant.core.Logger;
 import com.victory.poolassistant.databinding.ActivityMainBinding;
+import com.victory.poolassistant.overlay.FloatingOverlayService;
+import com.victory.poolassistant.overlay.OverlayView;
 import com.victory.poolassistant.ui.fragments.HomeFragment;
 import com.victory.poolassistant.ui.fragments.SettingsFragment;
 import com.victory.poolassistant.ui.fragments.AboutFragment;
 import com.victory.poolassistant.ui.fragments.StatsFragment;
 import com.victory.poolassistant.utils.PermissionUtils;
 import com.victory.poolassistant.utils.ThemeManager;
-import com.victory.poolassistant.overlay.OverlayManager;
 
 /**
- * MainActivity - Main entry point with professional UI
- * Features modern Material Design with navigation drawer
+ * MainActivity - Main entry point dengan real FloatingOverlayService integration
+ * Fixed untuk properly start/stop overlay service
  */
-public class MainActivity extends AppCompatActivity implements 
-    NavigationView.OnNavigationItemSelectedListener, 
-    OverlayManager.OnOverlayStateChangeListener {
+public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
     
     private static final String TAG = "MainActivity";
     private static final int REQUEST_OVERLAY_PERMISSION = 1001;
@@ -52,7 +51,6 @@ public class MainActivity extends AppCompatActivity implements
     // App managers
     private ThemeManager themeManager;
     private PoolAssistantApplication app;
-    private OverlayManager overlayManager;
     
     // State
     private String currentFragmentTag = "home";
@@ -62,6 +60,9 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // Handle exit action dari overlay service
+        handleIntentActions(getIntent());
         
         // Initialize
         initializeComponents();
@@ -81,6 +82,17 @@ public class MainActivity extends AppCompatActivity implements
     }
     
     /**
+     * Handle intent actions (seperti EXIT_APP dari overlay)
+     */
+    private void handleIntentActions(Intent intent) {
+        if (intent != null && "EXIT_APP".equals(intent.getAction())) {
+            Logger.i(TAG, "Exit app requested from overlay service");
+            finishAffinity();
+            return;
+        }
+    }
+    
+    /**
      * Initialize components
      */
     private void initializeComponents() {
@@ -92,10 +104,6 @@ public class MainActivity extends AppCompatActivity implements
         
         // Get theme manager
         themeManager = app.getThemeManager();
-        
-        // Initialize overlay manager
-        overlayManager = OverlayManager.getInstance(this);
-        overlayManager.setOnOverlayStateChangeListener(this);
         
         // Initialize view binding
         binding = ActivityMainBinding.inflate(getLayoutInflater());
@@ -235,47 +243,67 @@ public class MainActivity extends AppCompatActivity implements
     }
     
     /**
-     * Start overlay service
+     * Start overlay service - REAL IMPLEMENTATION
      */
     private void startOverlayService() {
-        Logger.i(TAG, "Starting overlay service...");
+        Logger.i(TAG, "Starting FloatingOverlayService...");
         
-        // Use OverlayManager to start overlay
-        boolean success = overlayManager.startOverlay();
-        
-        if (success) {
+        try {
+            // Start FloatingOverlayService dengan FULL state
+            FloatingOverlayService.startOverlayService(this, OverlayView.OverlayState.FULL);
+            
             // Update state
             isOverlayServiceRunning = true;
             AppConfig.setBoolean(AppConfig.PREF_OVERLAY_ENABLED, true);
             
-            // Update UI
-            updateUIState();
+            // Update UI dengan delay
+            animateFab(true);
+            uiHandler.postDelayed(() -> {
+                animateFab(false);
+                updateUIState();
+                showSnackbar("Overlay service started successfully!", false);
+            }, 1000);
             
-            // Show feedback
-            showSnackbar("Overlay service started", false);
-        } else {
-            showSnackbar("Failed to start overlay service", true);
+            Logger.i(TAG, "FloatingOverlayService start command sent");
+            
+        } catch (Exception e) {
+            Logger.e(TAG, "Failed to start overlay service", e);
+            showSnackbar("Failed to start overlay service: " + e.getMessage(), true);
+            
+            // Reset state on failure
+            isOverlayServiceRunning = false;
+            updateUIState();
         }
     }
     
     /**
-     * Stop overlay service
+     * Stop overlay service - REAL IMPLEMENTATION  
      */
     private void stopOverlayService() {
-        Logger.i(TAG, "Stopping overlay service...");
+        Logger.i(TAG, "Stopping FloatingOverlayService...");
         
-        // Use OverlayManager to stop overlay
-        overlayManager.stopOverlay();
-        
-        // Update state
-        isOverlayServiceRunning = false;
-        AppConfig.setBoolean(AppConfig.PREF_OVERLAY_ENABLED, false);
-        
-        // Update UI
-        updateUIState();
-        
-        // Show feedback
-        showSnackbar("Overlay service stopped", false);
+        try {
+            // Stop FloatingOverlayService
+            FloatingOverlayService.stopOverlayService(this);
+            
+            // Update state
+            isOverlayServiceRunning = false;
+            AppConfig.setBoolean(AppConfig.PREF_OVERLAY_ENABLED, false);
+            
+            // Update UI dengan delay
+            animateFab(true);
+            uiHandler.postDelayed(() -> {
+                animateFab(false);
+                updateUIState();
+                showSnackbar("Overlay service stopped", false);
+            }, 800);
+            
+            Logger.i(TAG, "FloatingOverlayService stop command sent");
+            
+        } catch (Exception e) {
+            Logger.e(TAG, "Failed to stop overlay service", e);
+            showSnackbar("Failed to stop overlay service: " + e.getMessage(), true);
+        }
     }
     
     /**
@@ -289,8 +317,9 @@ public class MainActivity extends AppCompatActivity implements
                 .setDuration(1000)
                 .setInterpolator(new AccelerateDecelerateInterpolator())
                 .withEndAction(() -> {
-                    if (isOverlayServiceRunning) {
-                        animateFab(true); // Continue if still loading
+                    if (loading) {
+                        binding.fab.setRotation(0);
+                        animateFab(loading); // Continue if still loading
                     }
                 });
         } else {
@@ -355,57 +384,6 @@ public class MainActivity extends AppCompatActivity implements
         snackbar.show();
     }
     
-    // =================== INTERFACE IMPLEMENTATIONS ===================
-    
-    /**
-     * Implementation of OnOverlayStateChangeListener.onOverlayStateChanged
-     */
-    @Override
-    public void onOverlayStateChanged(boolean isShowing) {
-        runOnUiThread(() -> {
-            isOverlayServiceRunning = isShowing;
-            updateUIState();
-            
-            String message = isShowing ? "Overlay started" : "Overlay stopped";
-            showSnackbar(message, false);
-        });
-    }
-    
-    /**
-     * Implementation of OnOverlayStateChangeListener.onOverlayPermissionRequired
-     */
-    @Override
-    public void onOverlayPermissionRequired() {
-        runOnUiThread(() -> {
-            showSnackbar("Overlay permission required", true);
-            requestOverlayPermission();
-        });
-    }
-    
-    /**
-     * Implementation of OnOverlayStateChangeListener.onOverlayError
-     */
-    @Override
-    public void onOverlayError(String error) {
-        runOnUiThread(() -> {
-            showSnackbar("Overlay error: " + error, true);
-            isOverlayServiceRunning = false;
-            updateUIState();
-        });
-    }
-    
-    /**
-     * Implementation of OnOverlayStateChangeListener.onOverlayServiceConnected
-     */
-    @Override
-    public void onOverlayServiceConnected() {
-        runOnUiThread(() -> {
-            showSnackbar("Overlay service connected", false);
-        });
-    }
-    
-    // =================== MENU AND NAVIGATION ===================
-    
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.main_menu, menu);
@@ -446,8 +424,6 @@ public class MainActivity extends AppCompatActivity implements
         return true;
     }
     
-    // =================== LIFECYCLE METHODS ===================
-    
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -461,6 +437,12 @@ public class MainActivity extends AppCompatActivity implements
                 showSnackbar("Overlay permission denied. Some features may not work.", true);
             }
         }
+    }
+    
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        handleIntentActions(intent);
     }
     
     @Override
@@ -493,10 +475,6 @@ public class MainActivity extends AppCompatActivity implements
         // Cleanup
         if (uiHandler != null) {
             uiHandler.removeCallbacksAndMessages(null);
-        }
-        
-        if (overlayManager != null) {
-            overlayManager.setOnOverlayStateChangeListener(null);
         }
         
         Logger.d(TAG, "MainActivity destroyed");

@@ -242,6 +242,17 @@
       <!-- Add to strings.xml: -->
     <string name="overlay_service_description">Pool Assistant floating overlay for trajectory assistance</string>
     
+    
+        <!-- Overlay Notifications -->
+    <string name="overlay_notification_title">Pool Assistant Overlay</string>
+    <string name="overlay_notification_text">Overlay service is running</string>
+    <string name="overlay_notification_channel">Pool Assistant Overlay Service</string>
 
     
 </resources>
+
+
+    
+
+
+    

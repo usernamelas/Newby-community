@@ -5,6 +5,7 @@
     <!-- Permissions for Pool Assistant -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" 
         tools:ignore="QueryAllPackagesPermission" />
@@ -15,12 +16,6 @@
     
     <!-- Screen capture for game detection -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    
-    <!-- Add these to existing AndroidManifest.xml -->
-
-    <!-- Permissions for floating overlay -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
-
 
     <application
         android:name=".PoolAssistantApplication"
@@ -35,6 +30,7 @@
         android:hardwareAccelerated="true"
         tools:targetApi="31">
         
+        <!-- Main Activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -45,34 +41,25 @@
             </intent-filter>
         </activity>
         
-        
-
-        
-        
-        <!-- Floating overlay service -->
-        <service
-            android:name=".services.OverlayService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="mediaProjection" />
-
-        <!-- Game detection service -->
-        <service
-            android:name=".services.GameDetectionService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="specialUse" />
-            
-               <!-- Inside <application> tag, add: -->
-        
-        <!-- Floating Overlay Service -->
+        <!-- CORRECTED: Single FloatingOverlayService Declaration -->
         <service
             android:name=".overlay.FloatingOverlayService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="specialUse"
-            android:description="@string/overlay_service_description" />
-     
+            android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                      android:value="Pool trajectory overlay service" />
+        </service>
+
+        <!-- Game Detection Service (Future) -->
+        <service
+            android:name=".services.GameDetectionService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                      android:value="8 Ball Pool game detection" />
+        </service>
         
     </application>
 
