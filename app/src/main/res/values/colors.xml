@@ -188,4 +188,41 @@
     <color name="overlay_bg_light">#FAFAFA</color>
     <color name="overlay_surface_light">#FFFFFF</color>
     <color name="overlay_surface_variant_light">#F5F5F5</color>
+
+
+
+
+
+
+
+<!-- Additional colors for MainActivity and overlay system -->
+
+    <!-- Error colors -->
+
+    <color name="color_error_dark">#D32F2F</color>
+    
+    <!-- Success colors -->
+
+    <color name="color_success_dark">#388E3C</color>
+    
+    <!-- Warning colors -->
+
+    <color name="color_warning_dark">#F57C00</color>
+    
+    <!-- Overlay specific colors -->
+
+
+    <color name="overlay_background_dark">#2A2A2A</color>
+    <color name="overlay_background_light">#3E3E3E</color>
+    
+    <!-- Pool Assistant brand colors -->
+    <color name="pool_assistant_blue">#1976D2</color>
+    <color name="pool_assistant_blue_dark">#1565C0</color>
+    <color name="pool_assistant_green">#4CAF50</color>
+    <color name="pool_assistant_green_dark">#388E3C</color>
+    
+    
 </resources>
+
+    
+    

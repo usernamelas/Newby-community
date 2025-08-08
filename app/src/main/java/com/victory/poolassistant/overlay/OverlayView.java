@@ -6,6 +6,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.graphics.Typeface;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -17,6 +18,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Switch;
 import android.widget.SeekBar;
+import android.widget.Button;
 
 import com.victory.poolassistant.R;
 import com.victory.poolassistant.core.Logger;
@@ -65,8 +67,8 @@ public class OverlayView extends LinearLayout {
     private ImageButton btnCloseSettings;
     private ImageButton btnPlus;
     private Switch switchTheme;
-    private ImageButton btnReset;
-    private ImageButton btnExit;
+    private Button btnReset;
+    private Button btnExit;
     
     // Current state
     private OverlayState currentState = OverlayState.ICON;
@@ -91,9 +93,6 @@ public class OverlayView extends LinearLayout {
      */
     private void initView() {
         try {
-            // Inflate all 3 states
-            LayoutInflater inflater = LayoutInflater.from(getContext());
-            
             // Create containers
             iconContainer = createIconState();
             fullContainer = createFullState();
@@ -262,17 +261,20 @@ public class OverlayView extends LinearLayout {
             (int) (16 * getResources().getDisplayMetrics().density)
         );
         
-        // Fitur Aim toggle
-        switchFiturAim = createToggleSwitch("Fitur Aim", true);
-        section.addView(switchFiturAim);
+        // Fitur Aim toggle - FIXED: Get switch from container
+        LinearLayout aimLayout = createToggleSwitch("Fitur Aim", true);
+        switchFiturAim = (Switch) aimLayout.getChildAt(1);
+        section.addView(aimLayout);
         
-        // Aim Root Mode toggle  
-        switchAimRootMode = createToggleSwitch("Aim Root Mode", false);
-        section.addView(switchAimRootMode);
+        // Aim Root Mode toggle - FIXED: Get switch from container
+        LinearLayout rootLayout = createToggleSwitch("Aim Root Mode", false);
+        switchAimRootMode = (Switch) rootLayout.getChildAt(1);
+        section.addView(rootLayout);
         
-        // Prediksi Bola toggle
-        switchPrediksi = createToggleSwitch("Prediksi Bola", true);
-        section.addView(switchPrediksi);
+        // Prediksi Bola toggle - FIXED: Get switch from container
+        LinearLayout prediksiLayout = createToggleSwitch("Prediksi Bola", true);
+        switchPrediksi = (Switch) prediksiLayout.getChildAt(1);
+        section.addView(prediksiLayout);
         
         return section;
     }
@@ -316,13 +318,15 @@ public class OverlayView extends LinearLayout {
         section.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         section.setOrientation(LinearLayout.VERTICAL);
         
-        // Opacity slider
-        seekBarOpacity = createSlider("opacity", 80);
-        section.addView(seekBarOpacity);
+        // Opacity slider - FIXED: Get SeekBar from container
+        LinearLayout opacityLayout = createSlider("opacity", 80);
+        seekBarOpacity = (SeekBar) opacityLayout.getChildAt(1);
+        section.addView(opacityLayout);
         
-        // Ketebalan garis slider
-        seekBarKetebalan = createSlider("ketebalan garis", 60);
-        section.addView(seekBarKetebalan);
+        // Ketebalan garis slider - FIXED: Get SeekBar from container
+        LinearLayout ketebalanLayout = createSlider("ketebalan garis", 60);
+        seekBarKetebalan = (SeekBar) ketebalanLayout.getChildAt(1);
+        section.addView(ketebalanLayout);
         
         return section;
     }
@@ -412,7 +416,7 @@ public class OverlayView extends LinearLayout {
         settingsTitle.setText("Settings");
         settingsTitle.setTextColor(Color.WHITE);
         settingsTitle.setTextSize(16f);
-        settingsTitle.setTextStyle(1); // Bold
+        settingsTitle.setTypeface(settingsTitle.getTypeface(), Typeface.BOLD); // FIXED: Use setTypeface instead of setTextStyle
         header.addView(settingsTitle);
         
         // Plus button
@@ -452,12 +456,12 @@ public class OverlayView extends LinearLayout {
         
         // Reset position
         LinearLayout resetOption = createSettingsButton("↻ Reset Posisi");
-        btnReset = (ImageButton) resetOption.getChildAt(0);
+        btnReset = (Button) resetOption.getChildAt(0); // FIXED: Cast to Button instead of ImageButton
         options.addView(resetOption);
         
         // Exit app
         LinearLayout exitOption = createSettingsButton("🚪 Keluar Aplikasi", true);
-        btnExit = (ImageButton) exitOption.getChildAt(0);
+        btnExit = (Button) exitOption.getChildAt(0); // FIXED: Cast to Button instead of ImageButton
         options.addView(exitOption);
         
         return options;
@@ -511,13 +515,13 @@ public class OverlayView extends LinearLayout {
             (int) (12 * getResources().getDisplayMetrics().density)
         );
         
-        ImageButton button = new ImageButton(getContext());
+        Button button = new Button(getContext()); // FIXED: Use Button instead of ImageButton
         button.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, 
             (int) (48 * getResources().getDisplayMetrics().density)
         ));
-        button.setText(label);
-        button.setTextColor(isRed ? Color.parseColor("#FF5252") : Color.WHITE);
-        button.setTextSize(14f);
+        button.setText(label); // FIXED: Now setText works with Button
+        button.setTextColor(isRed ? Color.parseColor("#FF5252") : Color.WHITE); // FIXED: Now works with Button
+        button.setTextSize(14f); // FIXED: Now works with Button
         button.setBackgroundResource(isRed ? 
             R.drawable.overlay_settings_button_red_background : 
             R.drawable.overlay_settings_button_background
@@ -691,6 +695,27 @@ public class OverlayView extends LinearLayout {
      */
     public OverlayState getCurrentState() {
         return currentState;
+    }
+    
+    // ADDED: Missing methods for OverlayManager compatibility
+    public boolean isBasicAimEnabled() {
+        return switchFiturAim != null ? switchFiturAim.isChecked() : false;
+    }
+    
+    public boolean isRootAimEnabled() {
+        return switchAimRootMode != null ? switchAimRootMode.isChecked() : false;
+    }
+    
+    public boolean isPredictionEnabled() {
+        return switchPrediksi != null ? switchPrediksi.isChecked() : false;
+    }
+    
+    public int getOpacityValue() {
+        return seekBarOpacity != null ? seekBarOpacity.getProgress() : 80;
+    }
+    
+    public int getLineThicknessValue() {
+        return seekBarKetebalan != null ? seekBarKetebalan.getProgress() : 5;
     }
     
     /**

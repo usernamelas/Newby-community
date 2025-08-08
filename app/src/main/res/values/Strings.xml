@@ -249,8 +249,39 @@
     <string name="overlay_notification_channel">Pool Assistant Overlay Service</string>
 
     
-</resources>
 
+    <!-- Navigation drawer -->
+  
+    
+    <!-- Menu items -->
+    
+    <string name="action_toggle_overlay">Toggle Overlay</string>
+    
+    <!-- Navigation items -->
+
+    <string name="nav_overlay_toggle">Toggle Pool Assistant</string>
+    
+    <!-- Overlay service -->
+    <string name="overlay_service_running">Pool Assistant overlay is running</string>
+    <string name="overlay_service_stopped">Pool Assistant overlay stopped</string>
+
+    
+    <!-- Permission messages -->
+    <string name="permission_overlay_required">Overlay permission is required</string>
+    <string name="permission_overlay_granted">Overlay permission granted</string>
+    <string name="permission_overlay_denied">Overlay permission denied</string>
+    
+    <!-- Status messages -->
+    <string name="status_overlay_starting">Starting overlay service…</string>
+    <string name="status_overlay_stopping">Stopping overlay service…</string>
+    <string name="status_overlay_active">Pool Assistant overlay active</string>
+    <string name="status_overlay_inactive">Pool Assistant overlay inactive</string>
+    
+    <!-- Error messages -->
+    <string name="error_overlay_start_failed">Failed to start overlay service</string>
+    <string name="error_overlay_stop_failed">Failed to stop overlay service</string>
+    <string name="error_permission_required">Permission required for this feature</string>
+</resources>
 
     
 
