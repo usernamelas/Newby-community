@@ -26,7 +26,6 @@ import com.victory.poolassistant.core.AppConfig;
 import com.victory.poolassistant.core.Logger;
 import com.victory.poolassistant.databinding.ActivityMainBinding;
 import com.victory.poolassistant.overlay.FloatingOverlayService;
-import com.victory.poolassistant.overlay.OverlayView;
 import com.victory.poolassistant.ui.fragments.HomeFragment;
 import com.victory.poolassistant.ui.fragments.SettingsFragment;
 import com.victory.poolassistant.ui.fragments.AboutFragment;
@@ -35,8 +34,8 @@ import com.victory.poolassistant.utils.PermissionUtils;
 import com.victory.poolassistant.utils.ThemeManager;
 
 /**
- * MainActivity - Main entry point dengan real FloatingOverlayService integration
- * Fixed untuk properly start/stop overlay service
+ * MainActivity - Fixed overlay service integration
+ * Properly handles 3-state overlay system
  */
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
     
@@ -56,13 +55,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private String currentFragmentTag = "home";
     private boolean isOverlayServiceRunning = false;
     private boolean permissionsGranted = false;
+    private boolean isAnimatingFab = false;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
-        // Handle exit action dari overlay service
-        handleIntentActions(getIntent());
         
         // Initialize
         initializeComponents();
@@ -75,21 +72,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         
         // Load default fragment
         if (savedInstanceState == null) {
-            loadFragment(new HomeFragment(), "home", "Home");
+            loadFragment(new HomeFragment(), "home", "Pool Assistant");
         }
         
         Logger.i(TAG, "MainActivity created successfully");
-    }
-    
-    /**
-     * Handle intent actions (seperti EXIT_APP dari overlay)
-     */
-    private void handleIntentActions(Intent intent) {
-        if (intent != null && "EXIT_APP".equals(intent.getAction())) {
-            Logger.i(TAG, "Exit app requested from overlay service");
-            finishAffinity();
-            return;
-        }
     }
     
     /**
@@ -152,10 +138,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
     
     /**
-     * Setup floating action button
+     * Setup floating action button dengan proper overlay service integration
      */
     private void setupFloatingActionButton() {
         binding.fab.setOnClickListener(view -> {
+            if (isAnimatingFab) {
+                Logger.d(TAG, "FAB click ignored - animation in progress");
+                return;
+            }
+            
             if (permissionsGranted) {
                 toggleOverlayService();
             } else {
@@ -165,6 +156,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         
         // Initial FAB state
         updateFabState();
+        
+        Logger.d(TAG, "FAB setup completed");
     }
     
     /**
@@ -172,9 +165,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
      */
     private void updateNavigationHeader() {
         View headerView = binding.navView.getHeaderView(0);
-        
-        // Update version info, theme, etc.
-        // Will be implemented when we create the header layout
+        // TODO: Update header when layout is available
     }
     
     /**
@@ -189,6 +180,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         // Update state
         permissionsGranted = hasOverlayPerm;
         
+        // Check if service is already running
+        checkOverlayServiceStatus();
+        
         // Update UI
         updateUIState();
         
@@ -196,7 +190,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             showPermissionDialog();
         }
         
-        Logger.d(TAG, "Permissions check completed - Granted: " + permissionsGranted);
+        Logger.d(TAG, "Permissions check completed - Granted: " + permissionsGranted + 
+                ", Service running: " + isOverlayServiceRunning);
+    }
+    
+    /**
+     * Check if overlay service is currently running
+     */
+    private void checkOverlayServiceStatus() {
+        FloatingOverlayService service = FloatingOverlayService.getInstance();
+        isOverlayServiceRunning = (service != null && service.isOverlayVisible());
+        
+        Logger.d(TAG, "Overlay service status checked: " + isOverlayServiceRunning);
     }
     
     /**
@@ -204,13 +209,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
      */
     private void showPermissionDialog() {
         new AlertDialog.Builder(this)
-            .setTitle("Permissions Required")
-            .setMessage("Pool Assistant needs overlay permission to display trajectory lines over games.")
+            .setTitle("Overlay Permission Required")
+            .setMessage("Pool Assistant needs overlay permission to display the floating assistant over games.\n\n" +
+                       "This allows you to see trajectory lines and aim assistance while playing.")
             .setPositiveButton("Grant Permission", (dialog, which) -> requestOverlayPermission())
-            .setNegativeButton("Later", (dialog, which) -> {
-                Toast.makeText(this, "Some features may not work without permissions", 
-                    Toast.LENGTH_LONG).show();
+            .setNegativeButton("Not Now", (dialog, which) -> {
+                showSnackbar("Overlay features will be disabled without permission", true);
             })
+            .setIcon(R.drawable.ic_pool_ball)
             .setCancelable(false)
             .show();
     }
@@ -220,20 +226,29 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
      */
     private void requestOverlayPermission() {
         if (!PermissionUtils.hasOverlayPermission(this)) {
+            Logger.i(TAG, "Requesting overlay permission...");
+            
             Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
             intent.setData(Uri.parse("package:" + getPackageName()));
             startActivityForResult(intent, REQUEST_OVERLAY_PERMISSION);
+        } else {
+            Logger.d(TAG, "Overlay permission already granted");
+            permissionsGranted = true;
+            updateUIState();
         }
     }
     
     /**
-     * Toggle overlay service on/off
+     * Toggle overlay service on/off dengan proper error handling
      */
     private void toggleOverlayService() {
         if (!permissionsGranted) {
+            Logger.w(TAG, "Cannot toggle overlay - permissions not granted");
             requestOverlayPermission();
             return;
         }
+        
+        Logger.i(TAG, "Toggling overlay service - Current state: " + isOverlayServiceRunning);
         
         if (isOverlayServiceRunning) {
             stopOverlayService();
@@ -243,103 +258,144 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
     
     /**
-     * Start overlay service - REAL IMPLEMENTATION
+     * Start overlay service dengan proper implementation
      */
     private void startOverlayService() {
-        Logger.i(TAG, "Starting FloatingOverlayService...");
+        Logger.i(TAG, "Starting overlay service...");
+        
+        // Start animation
+        animateFab(true);
         
         try {
-            // Start FloatingOverlayService dengan FULL state
-            FloatingOverlayService.startOverlayService(this, OverlayView.OverlayState.FULL);
+            // Create intent for overlay service
+            Intent serviceIntent = new Intent(this, FloatingOverlayService.class);
+            serviceIntent.setAction(FloatingOverlayService.ACTION_START_OVERLAY);
             
-            // Update state
-            isOverlayServiceRunning = true;
-            AppConfig.setBoolean(AppConfig.PREF_OVERLAY_ENABLED, true);
+            // Start foreground service
+            startForegroundService(serviceIntent);
             
-            // Update UI dengan delay
-            animateFab(true);
+            // Update state after small delay to allow service to start
             uiHandler.postDelayed(() -> {
+                checkOverlayServiceStatus();
                 animateFab(false);
                 updateUIState();
-                showSnackbar("Overlay service started successfully!", false);
+                
+                if (isOverlayServiceRunning) {
+                    AppConfig.setBoolean(AppConfig.PREF_OVERLAY_ENABLED, true);
+                    showSnackbar("✅ Pool Assistant overlay started!", false);
+                    Logger.i(TAG, "Overlay service started successfully");
+                } else {
+                    showSnackbar("❌ Failed to start overlay service", true);
+                    Logger.e(TAG, "Failed to start overlay service");
+                }
             }, 1000);
             
-            Logger.i(TAG, "FloatingOverlayService start command sent");
-            
         } catch (Exception e) {
-            Logger.e(TAG, "Failed to start overlay service", e);
-            showSnackbar("Failed to start overlay service: " + e.getMessage(), true);
-            
-            // Reset state on failure
-            isOverlayServiceRunning = false;
-            updateUIState();
+            Logger.e(TAG, "Error starting overlay service", e);
+            animateFab(false);
+            showSnackbar("❌ Error starting overlay: " + e.getMessage(), true);
         }
     }
     
     /**
-     * Stop overlay service - REAL IMPLEMENTATION  
+     * Stop overlay service dengan proper cleanup
      */
     private void stopOverlayService() {
-        Logger.i(TAG, "Stopping FloatingOverlayService...");
+        Logger.i(TAG, "Stopping overlay service...");
+        
+        // Start animation
+        animateFab(true);
         
         try {
-            // Stop FloatingOverlayService
-            FloatingOverlayService.stopOverlayService(this);
+            // Stop service via intent
+            Intent serviceIntent = new Intent(this, FloatingOverlayService.class);
+            serviceIntent.setAction(FloatingOverlayService.ACTION_STOP_OVERLAY);
+            startService(serviceIntent);
             
-            // Update state
-            isOverlayServiceRunning = false;
-            AppConfig.setBoolean(AppConfig.PREF_OVERLAY_ENABLED, false);
+            // Alternative: Stop service directly
+            FloatingOverlayService service = FloatingOverlayService.getInstance();
+            if (service != null) {
+                service.stopSelf();
+            }
             
-            // Update UI dengan delay
-            animateFab(true);
+            // Update state after delay
             uiHandler.postDelayed(() -> {
+                checkOverlayServiceStatus();
                 animateFab(false);
                 updateUIState();
-                showSnackbar("Overlay service stopped", false);
+                
+                AppConfig.setBoolean(AppConfig.PREF_OVERLAY_ENABLED, false);
+                showSnackbar("🛑 Pool Assistant overlay stopped", false);
+                Logger.i(TAG, "Overlay service stopped successfully");
             }, 800);
             
-            Logger.i(TAG, "FloatingOverlayService stop command sent");
-            
         } catch (Exception e) {
-            Logger.e(TAG, "Failed to stop overlay service", e);
-            showSnackbar("Failed to stop overlay service: " + e.getMessage(), true);
+            Logger.e(TAG, "Error stopping overlay service", e);
+            animateFab(false);
+            showSnackbar("❌ Error stopping overlay: " + e.getMessage(), true);
         }
     }
     
     /**
-     * Animate FAB
+     * Animate FAB dengan improved animation
      */
     private void animateFab(boolean loading) {
+        isAnimatingFab = loading;
+        
         if (loading) {
-            // Start rotation animation
+            // Start smooth rotation animation
+            ValueAnimator rotationAnimator = ValueAnimator.ofFloat(0f, 360f);
+            rotationAnimator.setDuration(1200);
+            rotationAnimator.setRepeatCount(ValueAnimator.INFINITE);
+            rotationAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
+            rotationAnimator.addUpdateListener(animation -> {
+                if (isAnimatingFab) {
+                    binding.fab.setRotation((Float) animation.getAnimatedValue());
+                }
+            });
+            rotationAnimator.start();
+            
+            // Scale animation for visual feedback
             binding.fab.animate()
-                .rotation(360)
-                .setDuration(1000)
-                .setInterpolator(new AccelerateDecelerateInterpolator())
-                .withEndAction(() -> {
-                    if (loading) {
-                        binding.fab.setRotation(0);
-                        animateFab(loading); // Continue if still loading
-                    }
-                });
+                .scaleX(0.9f)
+                .scaleY(0.9f)
+                .setDuration(600)
+                .start();
+                
         } else {
-            // Stop animation
+            // Stop animations
             binding.fab.animate().cancel();
-            binding.fab.setRotation(0);
+            binding.fab.setRotation(0f);
+            binding.fab.animate()
+                .scaleX(1.0f)
+                .scaleY(1.0f)
+                .setDuration(300)
+                .start();
         }
     }
     
     /**
-     * Update FAB state
+     * Update FAB state dengan proper icons dan colors
      */
     private void updateFabState() {
         if (isOverlayServiceRunning) {
+            // Service is running - show stop button
             binding.fab.setImageResource(R.drawable.ic_stop);
             binding.fab.setBackgroundTintList(getColorStateList(R.color.color_error));
+            binding.fab.setContentDescription("Stop Pool Assistant Overlay");
         } else {
+            // Service is stopped - show play button
             binding.fab.setImageResource(R.drawable.ic_play_arrow);
             binding.fab.setBackgroundTintList(getColorStateList(R.color.color_primary));
+            binding.fab.setContentDescription("Start Pool Assistant Overlay");
         }
+        
+        // Disable FAB if no permissions
+        binding.fab.setEnabled(permissionsGranted);
+        binding.fab.setAlpha(permissionsGranted ? 1.0f : 0.5f);
+        
+        Logger.d(TAG, "FAB state updated - Running: " + isOverlayServiceRunning + 
+                ", Permissions: " + permissionsGranted);
     }
     
     /**
@@ -348,6 +404,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private void updateUIState() {
         updateFabState();
         updateNavigationHeader();
+        updateToolbarTitle();
         
         // Update current fragment if it implements state update
         Fragment currentFragment = getSupportFragmentManager().findFragmentByTag(currentFragmentTag);
@@ -357,11 +414,29 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
     
     /**
-     * Load fragment
+     * Update toolbar title dengan status indicator
+     */
+    private void updateToolbarTitle() {
+        String baseTitle = getString(R.string.app_name);
+        if (isOverlayServiceRunning) {
+            setTitle(baseTitle + " • Active");
+        } else {
+            setTitle(baseTitle);
+        }
+    }
+    
+    /**
+     * Load fragment dengan improved transitions
      */
     private void loadFragment(Fragment fragment, String tag, String title) {
         getSupportFragmentManager()
             .beginTransaction()
+            .setCustomAnimations(
+                R.anim.fragment_slide_in_right,
+                R.anim.fragment_slide_out_left,
+                R.anim.fragment_slide_in_left,
+                R.anim.fragment_slide_out_right
+            )
             .replace(R.id.fragment_container, fragment, tag)
             .commit();
         
@@ -372,13 +447,31 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
     
     /**
-     * Show snackbar message
+     * Show snackbar message dengan improved styling
      */
     private void showSnackbar(String message, boolean isError) {
         Snackbar snackbar = Snackbar.make(binding.coordinatorLayout, message, Snackbar.LENGTH_LONG);
         
         if (isError) {
             snackbar.setBackgroundTint(getColor(R.color.color_error));
+            snackbar.setTextColor(getColor(R.color.white));
+        } else {
+            snackbar.setBackgroundTint(getColor(R.color.color_primary));
+            snackbar.setTextColor(getColor(R.color.white));
+        }
+        
+        // Add action button for overlay-related messages
+        if (message.contains("overlay") || message.contains("Overlay")) {
+            if (isError && !permissionsGranted) {
+                snackbar.setAction("Grant Permission", v -> requestOverlayPermission());
+            } else if (isOverlayServiceRunning) {
+                snackbar.setAction("Hide", v -> {
+                    FloatingOverlayService service = FloatingOverlayService.getInstance();
+                    if (service != null) {
+                        service.hideOverlay();
+                    }
+                });
+            }
         }
         
         snackbar.show();
@@ -401,6 +494,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         } else if (id == R.id.action_settings) {
             loadFragment(new SettingsFragment(), "settings", "Settings");
             return true;
+        } else if (id == R.id.action_toggle_overlay) {
+            // Quick overlay toggle from menu
+            toggleOverlayService();
+            return true;
         }
         
         return super.onOptionsItemSelected(item);
@@ -418,6 +515,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             loadFragment(new StatsFragment(), "stats", "Statistics");
         } else if (id == R.id.nav_about) {
             loadFragment(new AboutFragment(), "about", "About");
+        } else if (id == R.id.nav_overlay_toggle) {
+            // Direct overlay toggle from navigation
+            toggleOverlayService();
+            binding.drawerLayout.closeDrawer(GravityCompat.START);
+            return true;
         }
         
         binding.drawerLayout.closeDrawer(GravityCompat.START);
@@ -429,20 +531,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onActivityResult(requestCode, resultCode, data);
         
         if (requestCode == REQUEST_OVERLAY_PERMISSION) {
-            if (PermissionUtils.hasOverlayPermission(this)) {
-                permissionsGranted = true;
+            boolean hasPermission = PermissionUtils.hasOverlayPermission(this);
+            permissionsGranted = hasPermission;
+            
+            if (hasPermission) {
                 updateUIState();
-                showSnackbar("Overlay permission granted!", false);
+                showSnackbar("✅ Overlay permission granted! You can now use Pool Assistant overlay.", false);
+                Logger.i(TAG, "Overlay permission granted by user");
             } else {
-                showSnackbar("Overlay permission denied. Some features may not work.", true);
+                showSnackbar("❌ Overlay permission is required for Pool Assistant to work properly.", true);
+                Logger.w(TAG, "Overlay permission denied by user");
             }
         }
-    }
-    
-    @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        handleIntentActions(intent);
     }
     
     @Override
@@ -450,22 +550,61 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
             binding.drawerLayout.closeDrawer(GravityCompat.START);
         } else {
-            super.onBackPressed();
+            // Show exit confirmation if overlay is running
+            if (isOverlayServiceRunning) {
+                showExitConfirmation();
+            } else {
+                super.onBackPressed();
+            }
         }
+    }
+    
+    /**
+     * Show exit confirmation when overlay is active
+     */
+    private void showExitConfirmation() {
+        new AlertDialog.Builder(this)
+            .setTitle("Pool Assistant Active")
+            .setMessage("Pool Assistant overlay is currently running. What would you like to do?")
+            .setPositiveButton("Keep Running & Exit", (dialog, which) -> {
+                // Exit app but keep service running
+                moveTaskToBack(true);
+            })
+            .setNegativeButton("Stop & Exit", (dialog, which) -> {
+                // Stop service and exit
+                stopOverlayService();
+                finish();
+            })
+            .setNeutralButton("Cancel", null)
+            .setIcon(R.drawable.ic_pool_ball)
+            .show();
     }
     
     @Override
     protected void onResume() {
         super.onResume();
         
-        // Check if permissions changed
+        // Check if permissions changed while app was in background
         boolean currentOverlayPerm = PermissionUtils.hasOverlayPermission(this);
         if (currentOverlayPerm != permissionsGranted) {
             permissionsGranted = currentOverlayPerm;
-            updateUIState();
+            Logger.d(TAG, "Overlay permission changed while app was paused: " + permissionsGranted);
         }
         
-        Logger.d(TAG, "MainActivity resumed");
+        // Check service status
+        checkOverlayServiceStatus();
+        
+        // Update UI
+        updateUIState();
+        
+        Logger.d(TAG, "MainActivity resumed - Permissions: " + permissionsGranted + 
+                ", Service: " + isOverlayServiceRunning);
+    }
+    
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Logger.d(TAG, "MainActivity paused");
     }
     
     @Override
@@ -477,6 +616,38 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             uiHandler.removeCallbacksAndMessages(null);
         }
         
+        // Stop any ongoing animations
+        if (binding != null && binding.fab != null) {
+            binding.fab.animate().cancel();
+        }
+        
         Logger.d(TAG, "MainActivity destroyed");
+    }
+    
+    /**
+     * Handle service lifecycle callbacks (if service notifies main activity)
+     */
+    public void onOverlayServiceStarted() {
+        runOnUiThread(() -> {
+            isOverlayServiceRunning = true;
+            updateUIState();
+            showSnackbar("✅ Pool Assistant overlay is now active!", false);
+        });
+    }
+    
+    public void onOverlayServiceStopped() {
+        runOnUiThread(() -> {
+            isOverlayServiceRunning = false;
+            updateUIState();
+            showSnackbar("🛑 Pool Assistant overlay stopped", false);
+        });
+    }
+    
+    public void onOverlayServiceError(String error) {
+        runOnUiThread(() -> {
+            isOverlayServiceRunning = false;
+            updateUIState();
+            showSnackbar("❌ Overlay Error: " + error, true);
+        });
     }
 }
