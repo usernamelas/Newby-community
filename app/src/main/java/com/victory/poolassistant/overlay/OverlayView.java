@@ -26,6 +26,7 @@ import com.victory.poolassistant.core.Logger;
 /**
  * Fixed 3-State Overlay System untuk Pool Assistant
  * States: ICON → FULL → SETTINGS
+ * FIXED: Icon size & appearance improved
  */
 public class OverlayView extends LinearLayout {
     
@@ -33,7 +34,7 @@ public class OverlayView extends LinearLayout {
     
     // 3 States
     public enum OverlayState {
-        ICON,       // Floating icon (64dp)
+        ICON,       // Floating icon (48dp - FIXED size)
         FULL,       // Full overlay (320dp) 
         SETTINGS    // Settings menu (280dp)
     }
@@ -51,7 +52,6 @@ public class OverlayView extends LinearLayout {
     
     // Icon state components
     private ImageButton iconButton;
-    private View statusIndicator;
     
     // Full state components
     private ImageButton btnSettings;
@@ -119,41 +119,39 @@ public class OverlayView extends LinearLayout {
     }
     
     /**
-     * Create Icon State (64dp floating icon)
+     * Create Icon State (48dp floating icon - FIXED appearance)
      */
     private ViewGroup createIconState() {
         LinearLayout container = new LinearLayout(getContext());
         container.setLayoutParams(new LayoutParams(
-            (int) (64 * getResources().getDisplayMetrics().density),
-            (int) (64 * getResources().getDisplayMetrics().density)
+            (int) (48 * getResources().getDisplayMetrics().density), // FIXED: 64dp → 48dp
+            (int) (48 * getResources().getDisplayMetrics().density)
         ));
         container.setOrientation(LinearLayout.VERTICAL);
         container.setGravity(android.view.Gravity.CENTER);
-        container.setBackgroundResource(R.drawable.overlay_icon_background);
+        // REMOVED: Blue background - now minimal styling
         container.setElevation(8f);
         
-        // Pool assistant icon
+        // Pool assistant icon - using clean app icon
         iconButton = new ImageButton(getContext());
         LayoutParams iconParams = new LayoutParams(
-            (int) (40 * getResources().getDisplayMetrics().density),
-            (int) (40 * getResources().getDisplayMetrics().density)
+            (int) (44 * getResources().getDisplayMetrics().density), // FIXED: Proportional resize 
+            (int) (44 * getResources().getDisplayMetrics().density)
         );
         iconButton.setLayoutParams(iconParams);
-        iconButton.setBackgroundResource(R.drawable.overlay_icon_button_background);
-        iconButton.setImageResource(R.drawable.ic_pool_ball); // 8-ball icon
+        
+        // FIXED: Clean appearance - no blue background
+        iconButton.setBackground(null); // Transparent background
+        iconButton.setImageResource(R.drawable.ic_pool_assistant_icon); // FIXED: Use copied app icon
         iconButton.setScaleType(ImageButton.ScaleType.CENTER_INSIDE);
+        
+        // OPTIONAL: Add subtle shadow/border for better visibility
+        iconButton.setElevation(4f);
+        
         container.addView(iconButton);
         
-        // Status indicator (green dot)
-        statusIndicator = new View(getContext());
-        LayoutParams statusParams = new LayoutParams(
-            (int) (8 * getResources().getDisplayMetrics().density),
-            (int) (8 * getResources().getDisplayMetrics().density)
-        );
-        statusParams.setMargins(0, (int) (4 * getResources().getDisplayMetrics().density), 0, 0);
-        statusIndicator.setLayoutParams(statusParams);
-        statusIndicator.setBackgroundResource(R.drawable.status_indicator_active);
-        container.addView(statusIndicator);
+        // REMOVED: Green status indicator - cleaner look
+        // No green dot clutter
         
         return container;
     }
@@ -261,17 +259,17 @@ public class OverlayView extends LinearLayout {
             (int) (16 * getResources().getDisplayMetrics().density)
         );
         
-        // Fitur Aim toggle - FIXED: Get switch from container
+        // Fitur Aim toggle - Get switch from container
         LinearLayout aimLayout = createToggleSwitch("Fitur Aim", true);
         switchFiturAim = (Switch) aimLayout.getChildAt(1);
         section.addView(aimLayout);
         
-        // Aim Root Mode toggle - FIXED: Get switch from container
+        // Aim Root Mode toggle - Get switch from container
         LinearLayout rootLayout = createToggleSwitch("Aim Root Mode", false);
         switchAimRootMode = (Switch) rootLayout.getChildAt(1);
         section.addView(rootLayout);
         
-        // Prediksi Bola toggle - FIXED: Get switch from container
+        // Prediksi Bola toggle - Get switch from container
         LinearLayout prediksiLayout = createToggleSwitch("Prediksi Bola", true);
         switchPrediksi = (Switch) prediksiLayout.getChildAt(1);
         section.addView(prediksiLayout);
@@ -318,12 +316,12 @@ public class OverlayView extends LinearLayout {
         section.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         section.setOrientation(LinearLayout.VERTICAL);
         
-        // Opacity slider - FIXED: Get SeekBar from container
+        // Opacity slider - Get SeekBar from container
         LinearLayout opacityLayout = createSlider("opacity", 80);
         seekBarOpacity = (SeekBar) opacityLayout.getChildAt(1);
         section.addView(opacityLayout);
         
-        // Ketebalan garis slider - FIXED: Get SeekBar from container
+        // Ketebalan garis slider - Get SeekBar from container
         LinearLayout ketebalanLayout = createSlider("ketebalan garis", 60);
         seekBarKetebalan = (SeekBar) ketebalanLayout.getChildAt(1);
         section.addView(ketebalanLayout);
@@ -416,7 +414,7 @@ public class OverlayView extends LinearLayout {
         settingsTitle.setText("Settings");
         settingsTitle.setTextColor(Color.WHITE);
         settingsTitle.setTextSize(16f);
-        settingsTitle.setTypeface(settingsTitle.getTypeface(), Typeface.BOLD); // FIXED: Use setTypeface instead of setTextStyle
+        settingsTitle.setTypeface(settingsTitle.getTypeface(), Typeface.BOLD);
         header.addView(settingsTitle);
         
         // Plus button
@@ -456,12 +454,12 @@ public class OverlayView extends LinearLayout {
         
         // Reset position
         LinearLayout resetOption = createSettingsButton("↻ Reset Posisi");
-        btnReset = (Button) resetOption.getChildAt(0); // FIXED: Cast to Button instead of ImageButton
+        btnReset = (Button) resetOption.getChildAt(0);
         options.addView(resetOption);
         
         // Exit app
         LinearLayout exitOption = createSettingsButton("🚪 Keluar Aplikasi", true);
-        btnExit = (Button) exitOption.getChildAt(0); // FIXED: Cast to Button instead of ImageButton
+        btnExit = (Button) exitOption.getChildAt(0);
         options.addView(exitOption);
         
         return options;
@@ -515,13 +513,13 @@ public class OverlayView extends LinearLayout {
             (int) (12 * getResources().getDisplayMetrics().density)
         );
         
-        Button button = new Button(getContext()); // FIXED: Use Button instead of ImageButton
+        Button button = new Button(getContext());
         button.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, 
             (int) (48 * getResources().getDisplayMetrics().density)
         ));
-        button.setText(label); // FIXED: Now setText works with Button
-        button.setTextColor(isRed ? Color.parseColor("#FF5252") : Color.WHITE); // FIXED: Now works with Button
-        button.setTextSize(14f); // FIXED: Now works with Button
+        button.setText(label);
+        button.setTextColor(isRed ? Color.parseColor("#FF5252") : Color.WHITE);
+        button.setTextSize(14f);
         button.setBackgroundResource(isRed ? 
             R.drawable.overlay_settings_button_red_background : 
             R.drawable.overlay_settings_button_background
@@ -697,7 +695,7 @@ public class OverlayView extends LinearLayout {
         return currentState;
     }
     
-    // ADDED: Missing methods for OverlayManager compatibility
+    // Missing methods for OverlayManager compatibility
     public boolean isBasicAimEnabled() {
         return switchFiturAim != null ? switchFiturAim.isChecked() : false;
     }
