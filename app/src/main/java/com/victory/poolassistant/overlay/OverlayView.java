@@ -744,6 +744,12 @@ public class OverlayView extends LinearLayout {
             Logger.d(TAG, "Drag ended - Final position: " + 
                      (service != null ? service.getCurrentX() : "unknown") + ", " + 
                      (service != null ? service.getCurrentY() : "unknown"));
+            
+            // TAMBAH INI: Trigger snap to edge setelah drag selesai
+            if (service != null) {
+                service.snapToEdge();
+            }
+            
             isDragging = false;
             return true;
         }

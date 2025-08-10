@@ -1,5 +1,6 @@
 package com.victory.poolassistant.overlay;
 
+import android.animation.ValueAnimator;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -11,9 +12,8 @@ import android.os.Build;
 import android.os.IBinder;
 import android.provider.Settings;
 import android.view.Gravity;
-import android.view.LayoutInflater;
-import android.view.View;
 import android.view.WindowManager;
+import android.view.animation.DecelerateInterpolator;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
@@ -24,7 +24,7 @@ import com.victory.poolassistant.core.Logger;
 /**
  * Foreground service untuk floating overlay Pool Assistant
  * Handles window management dan lifecycle overlay
- * ENHANCED: Added missing getCurrentX() and getCurrentY() methods
+ * FIXED: Anti-hide saat scroll + Auto snap to edge
  */
 public class FloatingOverlayService extends Service {
     
@@ -41,6 +41,9 @@ public class FloatingOverlayService extends Service {
     private WindowManager windowManager;
     private OverlayView overlayView;
     private WindowManager.LayoutParams layoutParams;
+    
+    // Animation
+    private ValueAnimator positionAnimator;
     
     // State
     private boolean isOverlayVisible = false;
@@ -94,6 +97,11 @@ public class FloatingOverlayService extends Service {
     public void onDestroy() {
         Logger.d(TAG, "FloatingOverlayService destroyed");
         
+        // Cancel animation
+        if (positionAnimator != null && positionAnimator.isRunning()) {
+            positionAnimator.cancel();
+        }
+        
         hideOverlay();
         instance = null;
         super.onDestroy();
@@ -121,26 +129,42 @@ public class FloatingOverlayService extends Service {
                 layoutFlag = WindowManager.LayoutParams.TYPE_PHONE;
             }
             
+            // FIXED: Window flags untuk tidak hilang saat scroll
             layoutParams = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 layoutFlag,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN |
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL |
+                WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH |
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                 PixelFormat.TRANSLUCENT
             );
             
-            // Position overlay
+            // Position overlay - start di kiri layar
             layoutParams.gravity = Gravity.TOP | Gravity.START;
-            layoutParams.x = 100; // Initial X position
-            layoutParams.y = 100; // Initial Y position
+            layoutParams.x = 0; // Start at left edge
+            layoutParams.y = 300; // Middle-ish of screen
             
             Logger.d(TAG, "Overlay view initialized successfully");
             
         } catch (Exception e) {
             Logger.e(TAG, "Failed to initialize overlay view", e);
         }
+    }
+    
+    /**
+     * Get current X position
+     */
+    public int getCurrentX() {
+        return layoutParams != null ? layoutParams.x : 0;
+    }
+
+    /**
+     * Get current Y position  
+     */
+    public int getCurrentY() {
+        return layoutParams != null ? layoutParams.y : 0;
     }
     
     /**
@@ -163,7 +187,7 @@ public class FloatingOverlayService extends Service {
             windowManager.addView(overlayView, layoutParams);
             isOverlayVisible = true;
             
-            Logger.i(TAG, "Overlay shown successfully");
+            Logger.i(TAG, "Overlay shown successfully at position: " + layoutParams.x + ", " + layoutParams.y);
             
             // Update notification
             updateNotification("Pool Assistant overlay active");
@@ -206,6 +230,139 @@ public class FloatingOverlayService extends Service {
         } else {
             showOverlay();
         }
+    }
+    
+    /**
+     * Update overlay position dengan snap to edge (called by OverlayView)
+     */
+    public void updateOverlayPosition(int x, int y) {
+        if (layoutParams != null && isOverlayVisible) {
+            // Get screen dimensions
+            int screenWidth = getResources().getDisplayMetrics().widthPixels;
+            int screenHeight = getResources().getDisplayMetrics().heightPixels;
+            
+            // Get overlay dimensions (estimate)
+            int overlayWidth = 72; // Icon size in dp
+            int overlayHeight = 72;
+            
+            // Convert dp to pixels
+            float density = getResources().getDisplayMetrics().density;
+            overlayWidth = (int) (overlayWidth * density);
+            overlayHeight = (int) (overlayHeight * density);
+            
+            // Boundary constraints - keep within screen
+            x = Math.max(0, Math.min(x, screenWidth - overlayWidth));
+            y = Math.max(0, Math.min(y, screenHeight - overlayHeight));
+            
+            // Update position immediately (for smooth dragging)
+            layoutParams.x = x;
+            layoutParams.y = y;
+            
+            try {
+                windowManager.updateViewLayout(overlayView, layoutParams);
+                
+                // Update OverlayView's position tracking
+                if (overlayView != null) {
+                    overlayView.updateInitialPosition(x, y);
+                }
+                
+            } catch (Exception e) {
+                Logger.e(TAG, "Failed to update overlay position", e);
+            }
+        }
+    }
+    
+    /**
+     * Snap overlay to nearest edge with animation
+     */
+    public void snapToEdge() {
+        if (layoutParams == null || !isOverlayVisible) return;
+        
+        int screenWidth = getResources().getDisplayMetrics().widthPixels;
+        int currentX = layoutParams.x;
+        int currentY = layoutParams.y;
+        
+        // Get overlay width
+        float density = getResources().getDisplayMetrics().density;
+        int overlayWidth = (int) (72 * density); // Icon size
+        
+        // Calculate distance to left and right edges
+        int distanceToLeft = currentX;
+        int distanceToRight = screenWidth - currentX - overlayWidth;
+        
+        // Snap to nearest horizontal edge
+        int targetX = (distanceToLeft < distanceToRight) ? 0 : screenWidth - overlayWidth;
+        
+        // Keep current Y position (don't snap vertically)
+        int targetY = currentY;
+        
+        Logger.d(TAG, "Snapping to edge - From: " + currentX + "," + currentY + " To: " + targetX + "," + targetY);
+        
+        // Animate to target position
+        animateToPosition(targetX, targetY);
+    }
+    
+    /**
+     * Animate overlay to target position smoothly
+     */
+    private void animateToPosition(int targetX, int targetY) {
+        if (layoutParams == null || !isOverlayVisible) return;
+        
+        int startX = layoutParams.x;
+        int startY = layoutParams.y;
+        
+        // Don't animate if already at target
+        if (startX == targetX && startY == targetY) {
+            Logger.d(TAG, "Already at target position, skipping animation");
+            return;
+        }
+        
+        // Cancel any existing animation
+        if (positionAnimator != null && positionAnimator.isRunning()) {
+            positionAnimator.cancel();
+        }
+        
+        // Create smooth animation
+        positionAnimator = ValueAnimator.ofFloat(0f, 1f);
+        positionAnimator.setDuration(300); // 300ms animation
+        positionAnimator.setInterpolator(new DecelerateInterpolator());
+        
+        positionAnimator.addUpdateListener(animation -> {
+            float progress = (float) animation.getAnimatedValue();
+            
+            // Interpolate position
+            int currentX = startX + (int) ((targetX - startX) * progress);
+            int currentY = startY + (int) ((targetY - startY) * progress);
+            
+            // Update layout params
+            layoutParams.x = currentX;
+            layoutParams.y = currentY;
+            
+            try {
+                windowManager.updateViewLayout(overlayView, layoutParams);
+            } catch (Exception e) {
+                Logger.e(TAG, "Animation update failed", e);
+                positionAnimator.cancel(); // Stop animation on error
+            }
+        });
+        
+        positionAnimator.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(android.animation.Animator animation) {
+                // Update OverlayView's position tracking after animation
+                if (overlayView != null) {
+                    overlayView.updateInitialPosition(targetX, targetY);
+                }
+                Logger.d(TAG, "Snap animation completed - Final position: " + targetX + ", " + targetY);
+            }
+            
+            @Override
+            public void onAnimationCancel(android.animation.Animator animation) {
+                Logger.d(TAG, "Snap animation cancelled");
+            }
+        });
+        
+        positionAnimator.start();
     }
     
     /**
@@ -298,75 +455,34 @@ public class FloatingOverlayService extends Service {
     }
     
     /**
-     * Update overlay position (called by OverlayView)
+     * Force stop animation (untuk emergency cleanup)
      */
-    public void updateOverlayPosition(int x, int y) {
-        if (layoutParams != null && isOverlayVisible) {
-            layoutParams.x = x;
-            layoutParams.y = y;
-            
-            try {
-                windowManager.updateViewLayout(overlayView, layoutParams);
-            } catch (Exception e) {
-                Logger.e(TAG, "Failed to update overlay position", e);
-            }
+    public void stopAnimation() {
+        if (positionAnimator != null && positionAnimator.isRunning()) {
+            positionAnimator.cancel();
+            Logger.d(TAG, "Position animation force stopped");
         }
     }
     
     /**
-     * ADDED: Get current overlay X position (required by OverlayManager)
+     * Reset overlay position to default (center left)
      */
-    public int getCurrentX() {
-        return layoutParams != null ? layoutParams.x : 0;
-    }
-    
-    /**
-     * ADDED: Get current overlay Y position (required by OverlayManager)  
-     */
-    public int getCurrentY() {
-        return layoutParams != null ? layoutParams.y : 0;
-    }
-    
-    /**
-     * ADDED: Get overlay view instance (for advanced control)
-     */
-    public OverlayView getOverlayView() {
-        return overlayView;
-    }
-    
-    /**
-     * ADDED: Check if service is running
-     */
-    public static boolean isServiceRunning() {
-        return instance != null;
-    }
-    
-    /**
-     * ADDED: Get window layout parameters (for debugging)
-     */
-    public WindowManager.LayoutParams getLayoutParams() {
-        return layoutParams;
-    }
-    
-    /**
-     * ADDED: Graceful shutdown
-     */
-    public void shutdownService() {
-        Logger.i(TAG, "Shutting down FloatingOverlayService gracefully...");
-        
-        // Hide overlay first
-        hideOverlay();
-        
-        // Clean up overlay view
-        if (overlayView != null) {
-            overlayView.cleanup();
-            overlayView = null;
+    public void resetPosition() {
+        if (layoutParams != null) {
+            animateToPosition(0, 300); // Left edge, middle of screen
+            Logger.d(TAG, "Overlay position reset to default");
         }
+    }
+    
+    /**
+     * Get screen dimensions info (untuk debugging)
+     */
+    public String getScreenInfo() {
+        int width = getResources().getDisplayMetrics().widthPixels;
+        int height = getResources().getDisplayMetrics().heightPixels;
+        float density = getResources().getDisplayMetrics().density;
         
-        // Stop foreground service
-        stopForeground(true);
-        
-        // Stop service
-        stopSelf();
+        return "Screen: " + width + "x" + height + ", Density: " + density + 
+               ", Current pos: " + getCurrentX() + "," + getCurrentY();
     }
 }
