@@ -24,6 +24,7 @@ import com.victory.poolassistant.core.Logger;
 /**
  * Foreground service untuk floating overlay Pool Assistant
  * Handles window management dan lifecycle overlay
+ * ENHANCED: Added missing getCurrentX() and getCurrentY() methods
  */
 public class FloatingOverlayService extends Service {
     
@@ -310,5 +311,62 @@ public class FloatingOverlayService extends Service {
                 Logger.e(TAG, "Failed to update overlay position", e);
             }
         }
+    }
+    
+    /**
+     * ADDED: Get current overlay X position (required by OverlayManager)
+     */
+    public int getCurrentX() {
+        return layoutParams != null ? layoutParams.x : 0;
+    }
+    
+    /**
+     * ADDED: Get current overlay Y position (required by OverlayManager)  
+     */
+    public int getCurrentY() {
+        return layoutParams != null ? layoutParams.y : 0;
+    }
+    
+    /**
+     * ADDED: Get overlay view instance (for advanced control)
+     */
+    public OverlayView getOverlayView() {
+        return overlayView;
+    }
+    
+    /**
+     * ADDED: Check if service is running
+     */
+    public static boolean isServiceRunning() {
+        return instance != null;
+    }
+    
+    /**
+     * ADDED: Get window layout parameters (for debugging)
+     */
+    public WindowManager.LayoutParams getLayoutParams() {
+        return layoutParams;
+    }
+    
+    /**
+     * ADDED: Graceful shutdown
+     */
+    public void shutdownService() {
+        Logger.i(TAG, "Shutting down FloatingOverlayService gracefully...");
+        
+        // Hide overlay first
+        hideOverlay();
+        
+        // Clean up overlay view
+        if (overlayView != null) {
+            overlayView.cleanup();
+            overlayView = null;
+        }
+        
+        // Stop foreground service
+        stopForeground(true);
+        
+        // Stop service
+        stopSelf();
     }
 }
