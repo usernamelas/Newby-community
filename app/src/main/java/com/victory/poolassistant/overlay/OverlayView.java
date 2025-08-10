@@ -1133,16 +1133,21 @@ public class OverlayView extends LinearLayout {
      */
     public void testTouch() {
         Logger.d(TAG, "🧪 TOUCH TEST:");
-        Logger.d(TAG, "- Has OnTouchListener: " + (getOnTouchListener() != null));
         Logger.d(TAG, "- Is Clickable: " + isClickable());
         Logger.d(TAG, "- Is Enabled: " + isEnabled());
         Logger.d(TAG, "- Current State: " + currentState);
         Logger.d(TAG, "- Service Connected: " + (service != null));
+        Logger.d(TAG, "- Is Initialized: " + isInitialized);
+        Logger.d(TAG, "- Is Dragging: " + isDragging);
         
         if (iconButton != null) {
             Logger.d(TAG, "- Icon Button Clickable: " + iconButton.isClickable());
             Logger.d(TAG, "- Icon Button Enabled: " + iconButton.isEnabled());
-            Logger.d(TAG, "- Icon Button OnTouchListener: " + (iconButton.getOnTouchListener() != null));
+            Logger.d(TAG, "- Icon Button Visibility: " + (iconButton.getVisibility() == View.VISIBLE ? "VISIBLE" : "HIDDEN"));
+        }
+        
+        if (iconContainer != null) {
+            Logger.d(TAG, "- Icon Container Visibility: " + (iconContainer.getVisibility() == View.VISIBLE ? "VISIBLE" : "HIDDEN"));
         }
     }
 }
