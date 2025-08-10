@@ -24,19 +24,19 @@ import com.victory.poolassistant.R;
 import com.victory.poolassistant.core.Logger;
 
 /**
- * Fixed 3-State Overlay System untuk Pool Assistant
- * States: ICON → FULL → SETTINGS
- * FIXED: Icon size & appearance improved
+ * OverlayView Versi Canggih - 3-State System
+ * States: ICON (72dp) → FULL (320dp) → SETTINGS (280dp)
+ * Compatible dengan OverlayManager + fixes semua compile errors
  */
 public class OverlayView extends LinearLayout {
     
     private static final String TAG = "OverlayView";
     
-    // 3 States
+    // 3-State System (seperti Easy Victory)
     public enum OverlayState {
-        ICON,       // Floating icon (48dp - FIXED size)
-        FULL,       // Full overlay (320dp) 
-        SETTINGS    // Settings menu (280dp)
+        ICON,       // Floating icon 72dp - clean tanpa warna biru/hijau
+        FULL,       // Full overlay 320dp dengan toggles + sliders
+        SETTINGS    // Settings menu 280dp dengan options
     }
     
     // Touch handling
@@ -62,9 +62,9 @@ public class OverlayView extends LinearLayout {
     private Switch switchPrediksi;
     private SeekBar seekBarOpacity;
     private SeekBar seekBarKetebalan;
+    private TextView tvStatus;
     
     // Settings state components
-    private ImageButton btnCloseSettings;
     private ImageButton btnPlus;
     private Switch switchTheme;
     private Button btnReset;
@@ -74,12 +74,21 @@ public class OverlayView extends LinearLayout {
     private OverlayState currentState = OverlayState.ICON;
     private boolean isInitialized = false;
     
+    // COMPATIBILITY: Old system properties untuk backward compatibility
+    private boolean isMinimized = false;
+    private ViewGroup mainContainer;
+    private ViewGroup minimizedContainer;
+    private ImageButton btnMinimize;
+    private ImageButton btnExpand;
+    
     // Service reference
     private FloatingOverlayService service;
     
     public OverlayView(Context context) {
         super(context);
-        this.service = (FloatingOverlayService) context;
+        if (context instanceof FloatingOverlayService) {
+            this.service = (FloatingOverlayService) context;
+        }
         initView();
     }
     
@@ -89,16 +98,16 @@ public class OverlayView extends LinearLayout {
     }
     
     /**
-     * Initialize 3-state overlay view
+     * Initialize 3-state overlay system
      */
     private void initView() {
         try {
-            // Create containers
+            // Create all 3 state containers
             iconContainer = createIconState();
             fullContainer = createFullState();
             settingsContainer = createSettingsState();
             
-            // Add all containers
+            // Add containers to layout
             addView(iconContainer);
             addView(fullContainer);
             addView(settingsContainer);
@@ -110,6 +119,9 @@ public class OverlayView extends LinearLayout {
             // Set initial state
             setState(OverlayState.ICON);
             
+            // COMPATIBILITY: Setup backward compatibility references
+            setupBackwardCompatibility();
+            
             isInitialized = true;
             Logger.d(TAG, "3-State OverlayView initialized successfully");
             
@@ -119,45 +131,52 @@ public class OverlayView extends LinearLayout {
     }
     
     /**
-     * Create Icon State (48dp floating icon - FIXED appearance)
+     * FIXED: Create Icon State (72dp - clean seperti app icon)
      */
     private ViewGroup createIconState() {
         LinearLayout container = new LinearLayout(getContext());
         container.setLayoutParams(new LayoutParams(
-            (int) (72 * getResources().getDisplayMetrics().density), // FIXED: 64dp → 48dp
+            (int) (72 * getResources().getDisplayMetrics().density), // FIXED: 72dp
             (int) (72 * getResources().getDisplayMetrics().density)
         ));
         container.setOrientation(LinearLayout.VERTICAL);
         container.setGravity(android.view.Gravity.CENTER);
-        // REMOVED: Blue background - now minimal styling
+        
+        // FIXED: No blue background - clean like app icon
+        container.setBackgroundResource(android.R.drawable.btn_default); // Fallback system background
         container.setElevation(8f);
         
-        // Pool assistant icon - using clean app icon
+        // App icon button
         iconButton = new ImageButton(getContext());
         LayoutParams iconParams = new LayoutParams(
-            (int) (64 * getResources().getDisplayMetrics().density), // FIXED: Proportional resize 
+            (int) (64 * getResources().getDisplayMetrics().density), // FIXED: 64dp proportional
             (int) (64 * getResources().getDisplayMetrics().density)
         );
         iconButton.setLayoutParams(iconParams);
         
-        // FIXED: Clean appearance - no blue background
-        iconButton.setBackground(null); // Transparent background
-        iconButton.setImageResource(R.drawable.ic_pool_assistant_icon); // FIXED: Use copied app icon
+        // FIXED: Clean transparent background + app icon
+        iconButton.setBackground(null);
+        
+        // Use app icon - fallback to system icon if custom not found
+        try {
+            iconButton.setImageResource(R.drawable.ic_pool_assistant_icon);
+        } catch (Exception e) {
+            // Fallback to system icon
+            iconButton.setImageResource(android.R.drawable.ic_dialog_info);
+            Logger.w(TAG, "Using fallback icon - add ic_pool_assistant_icon.png to drawable/");
+        }
+        
         iconButton.setScaleType(ImageButton.ScaleType.CENTER_INSIDE);
-        
-        // OPTIONAL: Add subtle shadow/border for better visibility
         iconButton.setElevation(4f);
-        
         container.addView(iconButton);
         
-        // REMOVED: Green status indicator - cleaner look
-        // No green dot clutter
+        // REMOVED: No green status indicator - cleaner look
         
         return container;
     }
     
     /**
-     * Create Full State (320dp full overlay)
+     * Create Full State (320dp dengan toggles + sliders)
      */
     private ViewGroup createFullState() {
         LinearLayout container = new LinearLayout(getContext());
@@ -166,18 +185,30 @@ public class OverlayView extends LinearLayout {
             LayoutParams.WRAP_CONTENT
         ));
         container.setOrientation(LinearLayout.VERTICAL);
-        container.setBackgroundResource(R.drawable.overlay_full_background);
-        container.setElevation(8f);
-        container.setPadding(
-            (int) (16 * getResources().getDisplayMetrics().density),
-            (int) (16 * getResources().getDisplayMetrics().density),
-            (int) (16 * getResources().getDisplayMetrics().density),
-            (int) (16 * getResources().getDisplayMetrics().density)
-        );
         
-        // Header with blue gradient
+        // Use fallback background if custom not found
+        try {
+            container.setBackgroundResource(R.drawable.overlay_full_background);
+        } catch (Exception e) {
+            container.setBackgroundColor(Color.parseColor("#2A2A2A")); // Dark fallback
+        }
+        
+        container.setElevation(8f);
+        container.setPadding(16, 16, 16, 16);
+        
+        // Header
         LinearLayout header = createFullHeader();
         container.addView(header);
+        
+        // Status text
+        tvStatus = new TextView(getContext());
+        tvStatus.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        tvStatus.setText("Pool Assistant Ready");
+        tvStatus.setTextColor(Color.WHITE);
+        tvStatus.setTextSize(14f);
+        tvStatus.setGravity(android.view.Gravity.CENTER);
+        tvStatus.setPadding(0, 16, 0, 16);
+        container.addView(tvStatus);
         
         // Toggle switches
         LinearLayout toggleSection = createToggleSection();
@@ -198,33 +229,40 @@ public class OverlayView extends LinearLayout {
         header.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         header.setOrientation(LinearLayout.HORIZONTAL);
         header.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        header.setBackgroundResource(R.drawable.overlay_header_gradient);
-        header.setPadding(
-            (int) (12 * getResources().getDisplayMetrics().density),
-            (int) (12 * getResources().getDisplayMetrics().density),
-            (int) (12 * getResources().getDisplayMetrics().density),
-            (int) (12 * getResources().getDisplayMetrics().density)
-        );
+        
+        // Use fallback background if custom not found
+        try {
+            header.setBackgroundResource(R.drawable.overlay_header_gradient);
+        } catch (Exception e) {
+            header.setBackgroundColor(Color.parseColor("#1976D2")); // Blue fallback
+        }
+        
+        header.setPadding(12, 12, 12, 12);
         
         // Settings button (⚙️)
         btnSettings = new ImageButton(getContext());
-        LayoutParams settingsParams = new LayoutParams(
-            (int) (32 * getResources().getDisplayMetrics().density),
-            (int) (32 * getResources().getDisplayMetrics().density)
-        );
+        LayoutParams settingsParams = new LayoutParams(32, 32);
         btnSettings.setLayoutParams(settingsParams);
-        btnSettings.setBackgroundResource(R.drawable.overlay_button_background);
-        btnSettings.setImageResource(R.drawable.ic_settings);
+        
+        try {
+            btnSettings.setBackgroundResource(R.drawable.overlay_button_background);
+        } catch (Exception e) {
+            btnSettings.setBackgroundResource(android.R.drawable.btn_default);
+        }
+        
+        try {
+            btnSettings.setImageResource(R.drawable.ic_settings);
+        } catch (Exception e) {
+            btnSettings.setImageResource(android.R.drawable.ic_menu_preferences);
+        }
+        
         btnSettings.setScaleType(ImageButton.ScaleType.CENTER_INSIDE);
         header.addView(btnSettings);
         
-        // Pool Assistant title with 8-ball icon
+        // Pool Assistant title
         tvPoolAssistant = new TextView(getContext());
         LayoutParams titleParams = new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f);
-        titleParams.setMargins(
-            (int) (12 * getResources().getDisplayMetrics().density), 0, 
-            (int) (12 * getResources().getDisplayMetrics().density), 0
-        );
+        titleParams.setMargins(12, 0, 12, 0);
         tvPoolAssistant.setLayoutParams(titleParams);
         tvPoolAssistant.setText("🎱 Pool Assistant");
         tvPoolAssistant.setTextColor(Color.WHITE);
@@ -234,13 +272,21 @@ public class OverlayView extends LinearLayout {
         
         // Close button (❌)
         btnClose = new ImageButton(getContext());
-        LayoutParams closeParams = new LayoutParams(
-            (int) (32 * getResources().getDisplayMetrics().density),
-            (int) (32 * getResources().getDisplayMetrics().density)
-        );
+        LayoutParams closeParams = new LayoutParams(32, 32);
         btnClose.setLayoutParams(closeParams);
-        btnClose.setBackgroundResource(R.drawable.overlay_button_background);
-        btnClose.setImageResource(R.drawable.ic_close);
+        
+        try {
+            btnClose.setBackgroundResource(R.drawable.overlay_button_background);
+        } catch (Exception e) {
+            btnClose.setBackgroundResource(android.R.drawable.btn_default);
+        }
+        
+        try {
+            btnClose.setImageResource(R.drawable.ic_close);
+        } catch (Exception e) {
+            btnClose.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
+        }
+        
         btnClose.setScaleType(ImageButton.ScaleType.CENTER_INSIDE);
         header.addView(btnClose);
         
@@ -254,22 +300,17 @@ public class OverlayView extends LinearLayout {
         LinearLayout section = new LinearLayout(getContext());
         section.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         section.setOrientation(LinearLayout.VERTICAL);
-        section.setPadding(0, 
-            (int) (16 * getResources().getDisplayMetrics().density), 0, 
-            (int) (16 * getResources().getDisplayMetrics().density)
-        );
+        section.setPadding(0, 16, 0, 16);
         
-        // Fitur Aim toggle - Get switch from container
+        // Create toggles
         LinearLayout aimLayout = createToggleSwitch("Fitur Aim", true);
         switchFiturAim = (Switch) aimLayout.getChildAt(1);
         section.addView(aimLayout);
         
-        // Aim Root Mode toggle - Get switch from container
         LinearLayout rootLayout = createToggleSwitch("Aim Root Mode", false);
         switchAimRootMode = (Switch) rootLayout.getChildAt(1);
         section.addView(rootLayout);
         
-        // Prediksi Bola toggle - Get switch from container
         LinearLayout prediksiLayout = createToggleSwitch("Prediksi Bola", true);
         switchPrediksi = (Switch) prediksiLayout.getChildAt(1);
         section.addView(prediksiLayout);
@@ -285,12 +326,8 @@ public class OverlayView extends LinearLayout {
         toggleLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         toggleLayout.setOrientation(LinearLayout.HORIZONTAL);
         toggleLayout.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        toggleLayout.setPadding(0, 
-            (int) (8 * getResources().getDisplayMetrics().density), 0, 
-            (int) (8 * getResources().getDisplayMetrics().density)
-        );
+        toggleLayout.setPadding(0, 8, 0, 8);
         
-        // Label
         TextView labelView = new TextView(getContext());
         LayoutParams labelParams = new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f);
         labelView.setLayoutParams(labelParams);
@@ -299,7 +336,6 @@ public class OverlayView extends LinearLayout {
         labelView.setTextSize(14f);
         toggleLayout.addView(labelView);
         
-        // Switch
         Switch switchView = new Switch(getContext());
         switchView.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
         switchView.setChecked(defaultValue);
@@ -316,12 +352,10 @@ public class OverlayView extends LinearLayout {
         section.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         section.setOrientation(LinearLayout.VERTICAL);
         
-        // Opacity slider - Get SeekBar from container
         LinearLayout opacityLayout = createSlider("opacity", 80);
         seekBarOpacity = (SeekBar) opacityLayout.getChildAt(1);
         section.addView(opacityLayout);
         
-        // Ketebalan garis slider - Get SeekBar from container
         LinearLayout ketebalanLayout = createSlider("ketebalan garis", 60);
         seekBarKetebalan = (SeekBar) ketebalanLayout.getChildAt(1);
         section.addView(ketebalanLayout);
@@ -336,29 +370,26 @@ public class OverlayView extends LinearLayout {
         LinearLayout sliderLayout = new LinearLayout(getContext());
         sliderLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         sliderLayout.setOrientation(LinearLayout.VERTICAL);
-        sliderLayout.setPadding(0, 
-            (int) (8 * getResources().getDisplayMetrics().density), 0, 
-            (int) (8 * getResources().getDisplayMetrics().density)
-        );
+        sliderLayout.setPadding(0, 8, 0, 8);
         
-        // Label background
         TextView labelView = new TextView(getContext());
-        labelView.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, 
-            (int) (40 * getResources().getDisplayMetrics().density)
-        ));
+        labelView.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, 40));
         labelView.setText(label);
         labelView.setTextColor(Color.WHITE);
         labelView.setTextSize(14f);
         labelView.setGravity(android.view.Gravity.CENTER);
-        labelView.setBackgroundResource(R.drawable.overlay_slider_label_background);
+        
+        try {
+            labelView.setBackgroundResource(R.drawable.overlay_slider_label_background);
+        } catch (Exception e) {
+            labelView.setBackgroundColor(Color.parseColor("#42A5F5"));
+        }
+        
         sliderLayout.addView(labelView);
         
-        // SeekBar
         SeekBar seekBar = new SeekBar(getContext());
         LayoutParams seekParams = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
-        seekParams.setMargins(0, 
-            (int) (8 * getResources().getDisplayMetrics().density), 0, 0
-        );
+        seekParams.setMargins(0, 8, 0, 0);
         seekBar.setLayoutParams(seekParams);
         seekBar.setMax(100);
         seekBar.setProgress(defaultValue);
@@ -377,7 +408,13 @@ public class OverlayView extends LinearLayout {
             LayoutParams.WRAP_CONTENT
         ));
         container.setOrientation(LinearLayout.VERTICAL);
-        container.setBackgroundResource(R.drawable.overlay_settings_background);
+        
+        try {
+            container.setBackgroundResource(R.drawable.overlay_settings_background);
+        } catch (Exception e) {
+            container.setBackgroundColor(Color.parseColor("#2A2A2A"));
+        }
+        
         container.setElevation(8f);
         
         // Settings header
@@ -399,15 +436,15 @@ public class OverlayView extends LinearLayout {
         header.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         header.setOrientation(LinearLayout.HORIZONTAL);
         header.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        header.setBackgroundResource(R.drawable.overlay_settings_header_background);
-        header.setPadding(
-            (int) (16 * getResources().getDisplayMetrics().density),
-            (int) (12 * getResources().getDisplayMetrics().density),
-            (int) (16 * getResources().getDisplayMetrics().density),
-            (int) (12 * getResources().getDisplayMetrics().density)
-        );
         
-        // Settings title
+        try {
+            header.setBackgroundResource(R.drawable.overlay_settings_header_background);
+        } catch (Exception e) {
+            header.setBackgroundColor(Color.parseColor("#FF9800"));
+        }
+        
+        header.setPadding(16, 12, 16, 12);
+        
         TextView settingsTitle = new TextView(getContext());
         LayoutParams titleParams = new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f);
         settingsTitle.setLayoutParams(titleParams);
@@ -417,16 +454,24 @@ public class OverlayView extends LinearLayout {
         settingsTitle.setTypeface(settingsTitle.getTypeface(), Typeface.BOLD);
         header.addView(settingsTitle);
         
-        // Plus button
+        // Plus button (back to full)
         btnPlus = new ImageButton(getContext());
-        LayoutParams plusParams = new LayoutParams(
-            (int) (32 * getResources().getDisplayMetrics().density),
-            (int) (32 * getResources().getDisplayMetrics().density)
-        );
-        plusParams.setMargins((int) (8 * getResources().getDisplayMetrics().density), 0, 0, 0);
+        LayoutParams plusParams = new LayoutParams(32, 32);
+        plusParams.setMargins(8, 0, 0, 0);
         btnPlus.setLayoutParams(plusParams);
-        btnPlus.setBackgroundResource(R.drawable.overlay_button_background);
-        btnPlus.setImageResource(R.drawable.ic_add);
+        
+        try {
+            btnPlus.setBackgroundResource(R.drawable.overlay_button_background);
+        } catch (Exception e) {
+            btnPlus.setBackgroundResource(android.R.drawable.btn_default);
+        }
+        
+        try {
+            btnPlus.setImageResource(R.drawable.ic_add);
+        } catch (Exception e) {
+            btnPlus.setImageResource(android.R.drawable.ic_input_add);
+        }
+        
         btnPlus.setScaleType(ImageButton.ScaleType.CENTER_INSIDE);
         header.addView(btnPlus);
         
@@ -440,43 +485,33 @@ public class OverlayView extends LinearLayout {
         LinearLayout options = new LinearLayout(getContext());
         options.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         options.setOrientation(LinearLayout.VERTICAL);
-        options.setPadding(
-            (int) (16 * getResources().getDisplayMetrics().density),
-            (int) (16 * getResources().getDisplayMetrics().density),
-            (int) (16 * getResources().getDisplayMetrics().density),
-            (int) (16 * getResources().getDisplayMetrics().density)
-        );
+        options.setPadding(16, 16, 16, 16);
         
         // Theme toggle
-        LinearLayout themeOption = createSettingsOption("🌙 Terang", false);
+        LinearLayout themeOption = createSettingsOption("🌙 Tema Gelap", false);
         switchTheme = (Switch) ((LinearLayout) themeOption.getChildAt(1)).getChildAt(0);
         options.addView(themeOption);
         
         // Reset position
-        LinearLayout resetOption = createSettingsButton("↻ Reset Posisi");
-        btnReset = (Button) resetOption.getChildAt(0);
-        options.addView(resetOption);
+        btnReset = createSettingsButton("↻ Reset Posisi", false);
+        options.addView(btnReset);
         
         // Exit app
-        LinearLayout exitOption = createSettingsButton("🚪 Keluar Aplikasi", true);
-        btnExit = (Button) exitOption.getChildAt(0);
-        options.addView(exitOption);
+        btnExit = createSettingsButton("🚪 Keluar Aplikasi", true);
+        options.addView(btnExit);
         
         return options;
     }
     
     /**
-     * Create settings option with toggle
+     * Create settings option dengan toggle
      */
     private LinearLayout createSettingsOption(String label, boolean defaultValue) {
         LinearLayout optionLayout = new LinearLayout(getContext());
         optionLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         optionLayout.setOrientation(LinearLayout.HORIZONTAL);
         optionLayout.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        optionLayout.setPadding(0, 
-            (int) (12 * getResources().getDisplayMetrics().density), 0, 
-            (int) (12 * getResources().getDisplayMetrics().density)
-        );
+        optionLayout.setPadding(0, 12, 0, 12);
         
         TextView labelView = new TextView(getContext());
         LayoutParams labelParams = new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f);
@@ -497,40 +532,36 @@ public class OverlayView extends LinearLayout {
     }
     
     /**
-     * Create settings button option
+     * Create settings button
      */
-    private LinearLayout createSettingsButton(String label) {
-        return createSettingsButton(label, false);
-    }
-    
-    private LinearLayout createSettingsButton(String label, boolean isRed) {
-        LinearLayout buttonLayout = new LinearLayout(getContext());
-        buttonLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-        buttonLayout.setOrientation(LinearLayout.HORIZONTAL);
-        buttonLayout.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        buttonLayout.setPadding(0, 
-            (int) (12 * getResources().getDisplayMetrics().density), 0, 
-            (int) (12 * getResources().getDisplayMetrics().density)
-        );
-        
+    private Button createSettingsButton(String label, boolean isRed) {
         Button button = new Button(getContext());
-        button.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, 
-            (int) (48 * getResources().getDisplayMetrics().density)
-        ));
+        LayoutParams buttonParams = new LayoutParams(LayoutParams.MATCH_PARENT, 48);
+        buttonParams.setMargins(0, 12, 0, 12);
+        button.setLayoutParams(buttonParams);
         button.setText(label);
         button.setTextColor(isRed ? Color.parseColor("#FF5252") : Color.WHITE);
         button.setTextSize(14f);
-        button.setBackgroundResource(isRed ? 
-            R.drawable.overlay_settings_button_red_background : 
-            R.drawable.overlay_settings_button_background
-        );
-        buttonLayout.addView(button);
         
-        return buttonLayout;
+        // FIXED: Use fallback backgrounds instead of missing drawables
+        try {
+            button.setBackgroundResource(isRed ? 
+                R.drawable.overlay_settings_button_red_background : 
+                R.drawable.overlay_settings_button_background
+            );
+        } catch (Exception e) {
+            // Fallback to system button background
+            button.setBackgroundResource(android.R.drawable.btn_default);
+            if (isRed) {
+                button.setBackgroundColor(Color.parseColor("#FF5252"));
+            }
+        }
+        
+        return button;
     }
     
     /**
-     * Setup click listeners for all states
+     * Setup click listeners untuk semua states
      */
     private void setupClickListeners() {
         // Icon state - Click to expand to Full
@@ -586,7 +617,7 @@ public class OverlayView extends LinearLayout {
     }
     
     /**
-     * Setup touch handling for dragging
+     * Setup touch handling untuk dragging
      */
     private void setupTouchHandling() {
         setOnTouchListener((v, event) -> {
@@ -642,14 +673,17 @@ public class OverlayView extends LinearLayout {
             case ICON:
                 iconContainer.setVisibility(VISIBLE);
                 animateTransition(iconContainer, 0.6f, 1.0f);
+                isMinimized = true; // Compatibility
                 break;
             case FULL:
                 fullContainer.setVisibility(VISIBLE);
                 animateTransition(fullContainer, 0.8f, 1.0f);
+                isMinimized = false; // Compatibility
                 break;
             case SETTINGS:
                 settingsContainer.setVisibility(VISIBLE);
                 animateTransition(settingsContainer, 0.8f, 1.0f);
+                isMinimized = false; // Compatibility
                 break;
         }
         
@@ -679,7 +713,7 @@ public class OverlayView extends LinearLayout {
     }
     
     /**
-     * Reset overlay position to center
+     * Reset overlay position
      */
     private void resetOverlayPosition() {
         if (service != null) {
@@ -689,13 +723,42 @@ public class OverlayView extends LinearLayout {
     }
     
     /**
+     * COMPATIBILITY: Setup backward compatibility dengan old system
+     */
+    private void setupBackwardCompatibility() {
+        // Map new containers to old names untuk compatibility
+        mainContainer = fullContainer;
+        minimizedContainer = iconContainer;
+        btnMinimize = btnClose; // Close button acts as minimize
+        btnExpand = iconButton; // Icon button acts as expand
+    }
+    
+    // =============================================================================
+    // PUBLIC API METHODS (Required by OverlayManager dan backward compatibility)
+    // =============================================================================
+    
+    /**
      * Get current state
      */
     public OverlayState getCurrentState() {
         return currentState;
     }
     
-    // Missing methods for OverlayManager compatibility
+    /**
+     * COMPATIBILITY: Old minimize/expand system
+     */
+    public void setMinimized(boolean minimized) {
+        setState(minimized ? OverlayState.ICON : OverlayState.FULL);
+        isMinimized = minimized;
+    }
+    
+    public boolean isMinimized() {
+        return currentState == OverlayState.ICON;
+    }
+    
+    /**
+     * REQUIRED BY OverlayManager: Feature state methods
+     */
     public boolean isBasicAimEnabled() {
         return switchFiturAim != null ? switchFiturAim.isChecked() : false;
     }
@@ -717,11 +780,63 @@ public class OverlayView extends LinearLayout {
     }
     
     /**
+     * Update status text
+     */
+    public void updateStatus(String status) {
+        if (tvStatus != null) {
+            post(() -> {
+                tvStatus.setText(status);
+                Logger.d(TAG, "Status updated: " + status);
+            });
+        }
+    }
+    
+    /**
+     * Custom drawing (future trajectory lines)
+     */
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        if (currentState != OverlayState.ICON) {
+            drawBorder(canvas);
+        }
+    }
+    
+    /**
+     * Draw border untuk overlay window
+     */
+    private void drawBorder(Canvas canvas) {
+        Paint borderPaint = new Paint();
+        borderPaint.setColor(Color.parseColor("#4CAF50"));
+        borderPaint.setStyle(Paint.Style.STROKE);
+        borderPaint.setStrokeWidth(4f);
+        borderPaint.setAntiAlias(true);
+        
+        RectF rect = new RectF(2, 2, getWidth() - 2, getHeight() - 2);
+        canvas.drawRoundRect(rect, 12f, 12f, borderPaint);
+    }
+    
+    /**
+     * Handle window focus changes
+     */
+    @Override
+    public void onWindowFocusChanged(boolean hasWindowFocus) {
+        super.onWindowFocusChanged(hasWindowFocus);
+        if (hasWindowFocus) {
+            updateStatus("Pool Assistant Ready");
+        }
+    }
+    
+    /**
      * Cleanup resources
      */
     public void cleanup() {
         Logger.d(TAG, "Cleaning up OverlayView resources");
+        
+        // Remove listeners
         setOnTouchListener(null);
+        
+        // Clear references
         service = null;
     }
 }
