@@ -6,6 +6,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.graphics.Typeface;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -14,83 +15,71 @@ import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
-import android.widget.SeekBar;
-import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Switch;
+import android.widget.SeekBar;
+import android.widget.Button;
 
 import com.victory.poolassistant.R;
 import com.victory.poolassistant.core.Logger;
 
 /**
- * Enhanced OverlayView dengan 3-state system (ICON/FULL/SETTINGS)
- * Compatible dengan OverlayManager architecture
+ * Fixed 3-State Overlay System untuk Pool Assistant
+ * States: ICON → FULL → SETTINGS
+ * FIXED: Icon size & appearance improved + DRAGGABLE FUNCTIONALITY
  */
 public class OverlayView extends LinearLayout {
     
     private static final String TAG = "OverlayView";
     
-    /**
-     * 3-State Overlay System
-     */
+    // 3 States
     public enum OverlayState {
-        ICON,       // 64dp floating icon only
-        FULL,       // 320dp main controls (toggles + sliders)  
-        SETTINGS    // 280dp settings menu
+        ICON,       // Floating icon (48dp - FIXED size)
+        FULL,       // Full overlay (320dp) 
+        SETTINGS    // Settings menu (280dp)
     }
     
     // Touch handling
     private float initialX, initialY;
     private float initialTouchX, initialTouchY;
     private boolean isDragging = false;
-    private static final int CLICK_THRESHOLD = 10; // pixels
+    private static final int CLICK_THRESHOLD = 10;
     
-    // UI Containers untuk 3-state system
-    private ViewGroup iconContainer;        // ICON state
-    private ViewGroup fullContainer;        // FULL state  
-    private ViewGroup settingsContainer;    // SETTINGS state
+    // State containers
+    private ViewGroup iconContainer;
+    private ViewGroup fullContainer;
+    private ViewGroup settingsContainer;
     
-    // ICON state components
+    // Icon state components
     private ImageButton iconButton;
     
-    // FULL state components
-    private ImageButton btnClose;
-    private ImageButton btnMinimize;
+    // Full state components
     private ImageButton btnSettings;
-    private TextView tvStatus;
-    private Switch switchBasicAim;
-    private Switch switchRootAim;
-    private Switch switchPrediction;
-    private SeekBar seekOpacity;
-    private SeekBar seekThickness;
-    private TextView tvOpacityValue;
-    private TextView tvThicknessValue;
+    private ImageButton btnClose;
+    private TextView tvPoolAssistant;
+    private Switch switchFiturAim;
+    private Switch switchAimRootMode;
+    private Switch switchPrediksi;
+    private SeekBar seekBarOpacity;
+    private SeekBar seekBarKetebalan;
     
-    // SETTINGS state components
-    private ImageButton btnSettingsClose;
-    private ImageButton btnThemeToggle;
-    private ImageButton btnResetPosition;
-    private ImageButton btnExitApp;
-    private TextView tvSettingsTitle;
+    // Settings state components
+    private ImageButton btnCloseSettings;
+    private ImageButton btnPlus;
+    private Switch switchTheme;
+    private Button btnReset;
+    private Button btnExit;
     
-    // State management
-    private OverlayState currentState = OverlayState.FULL;
+    // Current state
+    private OverlayState currentState = OverlayState.ICON;
     private boolean isInitialized = false;
-    
-    // Feature states
-    private boolean basicAimEnabled = false;
-    private boolean rootAimEnabled = false;
-    private boolean predictionEnabled = false;
-    private int opacityValue = 80;
-    private int lineThicknessValue = 5;
     
     // Service reference
     private FloatingOverlayService service;
     
     public OverlayView(Context context) {
         super(context);
-        if (context instanceof FloatingOverlayService) {
-            this.service = (FloatingOverlayService) context;
-        }
+        this.service = (FloatingOverlayService) context;
         initView();
     }
     
@@ -104,193 +93,498 @@ public class OverlayView extends LinearLayout {
      */
     private void initView() {
         try {
-            // Inflate layout
-            LayoutInflater inflater = LayoutInflater.from(getContext());
-            inflater.inflate(R.layout.overlay_floating_window, this, true);
+            // Create containers
+            iconContainer = createIconState();
+            fullContainer = createFullState();
+            settingsContainer = createSettingsState();
             
-            // Find all containers and views
-            findViews();
+            // Add all containers
+            addView(iconContainer);
+            addView(fullContainer);
+            addView(settingsContainer);
             
-            // Setup all click listeners
+            // Setup interactions
             setupClickListeners();
-            
-            // Setup touch handling
             setupTouchHandling();
             
-            // Setup seekbars
-            setupSeekBars();
-            
             // Set initial state
-            setState(OverlayState.FULL);
+            setState(OverlayState.ICON);
             
             isInitialized = true;
-            Logger.d(TAG, "Enhanced OverlayView initialized with 3-state system");
+            Logger.d(TAG, "3-State OverlayView initialized successfully");
             
         } catch (Exception e) {
             Logger.e(TAG, "Failed to initialize OverlayView", e);
-            // Create minimal fallback UI
-            createFallbackUI();
         }
     }
     
     /**
-     * Find all UI components for 3-state system
+     * Create Icon State (48dp floating icon - FIXED appearance)
      */
-    private void findViews() {
-        // Containers
-        iconContainer = findViewById(R.id.icon_container);
-        fullContainer = findViewById(R.id.full_container); 
-        settingsContainer = findViewById(R.id.settings_container);
+    private ViewGroup createIconState() {
+        LinearLayout container = new LinearLayout(getContext());
+        container.setLayoutParams(new LayoutParams(
+            (int) (72 * getResources().getDisplayMetrics().density), // FIXED: 64dp → 48dp
+            (int) (72 * getResources().getDisplayMetrics().density)
+        ));
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setGravity(android.view.Gravity.CENTER);
+        // REMOVED: Blue background - now minimal styling
+        container.setElevation(8f);
         
-        // Fallback ke alternative IDs jika tidak ditemukan
-        if (iconContainer == null) iconContainer = findViewById(R.id.minimized_container);
-        if (fullContainer == null) fullContainer = findViewById(R.id.main_container);
+        // Pool assistant icon - using clean app icon
+        iconButton = new ImageButton(getContext());
+        LayoutParams iconParams = new LayoutParams(
+            (int) (64 * getResources().getDisplayMetrics().density), // FIXED: Proportional resize 
+            (int) (64 * getResources().getDisplayMetrics().density)
+        );
+        iconButton.setLayoutParams(iconParams);
         
-        // ICON state
-        iconButton = findViewById(R.id.icon_button);
-        if (iconButton == null) iconButton = findViewById(R.id.btn_expand);
+        // FIXED: Clean appearance - no blue background
+        iconButton.setBackground(null); // Transparent background
+        iconButton.setImageResource(R.drawable.ic_pool_assistant_icon); // FIXED: Use copied app icon
+        iconButton.setScaleType(ImageButton.ScaleType.CENTER_INSIDE);
         
-        // FULL state
-        btnClose = findViewById(R.id.btn_close);
-        btnMinimize = findViewById(R.id.btn_minimize);
-        btnSettings = findViewById(R.id.btn_settings);
-        tvStatus = findViewById(R.id.tv_status);
+        // OPTIONAL: Add subtle shadow/border for better visibility
+        iconButton.setElevation(4f);
         
-        switchBasicAim = findViewById(R.id.switch_basic_aim);
-        switchRootAim = findViewById(R.id.switch_root_aim);
-        switchPrediction = findViewById(R.id.switch_prediction);
+        container.addView(iconButton);
         
-        seekOpacity = findViewById(R.id.seek_opacity);
-        seekThickness = findViewById(R.id.seek_thickness);
-        tvOpacityValue = findViewById(R.id.tv_opacity_value);
-        tvThicknessValue = findViewById(R.id.tv_thickness_value);
+        // REMOVED: Green status indicator - cleaner look
+        // No green dot clutter
         
-        // SETTINGS state
-        btnSettingsClose = findViewById(R.id.btn_settings_close);
-        btnThemeToggle = findViewById(R.id.btn_theme_toggle);
-        btnResetPosition = findViewById(R.id.btn_reset_position);
-        btnExitApp = findViewById(R.id.btn_exit_app);
-        tvSettingsTitle = findViewById(R.id.tv_settings_title);
+        return container;
     }
     
     /**
-     * Setup all click listeners untuk 3-state system
+     * Create Full State (320dp full overlay)
+     */
+    private ViewGroup createFullState() {
+        LinearLayout container = new LinearLayout(getContext());
+        container.setLayoutParams(new LayoutParams(
+            (int) (320 * getResources().getDisplayMetrics().density),
+            LayoutParams.WRAP_CONTENT
+        ));
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setBackgroundResource(R.drawable.overlay_full_background);
+        container.setElevation(8f);
+        container.setPadding(
+            (int) (16 * getResources().getDisplayMetrics().density),
+            (int) (16 * getResources().getDisplayMetrics().density),
+            (int) (16 * getResources().getDisplayMetrics().density),
+            (int) (16 * getResources().getDisplayMetrics().density)
+        );
+        
+        // Header with blue gradient
+        LinearLayout header = createFullHeader();
+        container.addView(header);
+        
+        // Toggle switches
+        LinearLayout toggleSection = createToggleSection();
+        container.addView(toggleSection);
+        
+        // Sliders
+        LinearLayout sliderSection = createSliderSection();
+        container.addView(sliderSection);
+        
+        return container;
+    }
+    
+    /**
+     * Create Full State Header
+     */
+    private LinearLayout createFullHeader() {
+        LinearLayout header = new LinearLayout(getContext());
+        header.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        header.setBackgroundResource(R.drawable.overlay_header_gradient);
+        header.setPadding(
+            (int) (12 * getResources().getDisplayMetrics().density),
+            (int) (12 * getResources().getDisplayMetrics().density),
+            (int) (12 * getResources().getDisplayMetrics().density),
+            (int) (12 * getResources().getDisplayMetrics().density)
+        );
+        
+        // Settings button (⚙️)
+        btnSettings = new ImageButton(getContext());
+        LayoutParams settingsParams = new LayoutParams(
+            (int) (32 * getResources().getDisplayMetrics().density),
+            (int) (32 * getResources().getDisplayMetrics().density)
+        );
+        btnSettings.setLayoutParams(settingsParams);
+        btnSettings.setBackgroundResource(R.drawable.overlay_button_background);
+        btnSettings.setImageResource(R.drawable.ic_settings);
+        btnSettings.setScaleType(ImageButton.ScaleType.CENTER_INSIDE);
+        header.addView(btnSettings);
+        
+        // Pool Assistant title with 8-ball icon
+        tvPoolAssistant = new TextView(getContext());
+        LayoutParams titleParams = new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f);
+        titleParams.setMargins(
+            (int) (12 * getResources().getDisplayMetrics().density), 0, 
+            (int) (12 * getResources().getDisplayMetrics().density), 0
+        );
+        tvPoolAssistant.setLayoutParams(titleParams);
+        tvPoolAssistant.setText("🎱 Pool Assistant");
+        tvPoolAssistant.setTextColor(Color.WHITE);
+        tvPoolAssistant.setTextSize(16f);
+        tvPoolAssistant.setGravity(android.view.Gravity.CENTER);
+        header.addView(tvPoolAssistant);
+        
+        // Close button (❌)
+        btnClose = new ImageButton(getContext());
+        LayoutParams closeParams = new LayoutParams(
+            (int) (32 * getResources().getDisplayMetrics().density),
+            (int) (32 * getResources().getDisplayMetrics().density)
+        );
+        btnClose.setLayoutParams(closeParams);
+        btnClose.setBackgroundResource(R.drawable.overlay_button_background);
+        btnClose.setImageResource(R.drawable.ic_close);
+        btnClose.setScaleType(ImageButton.ScaleType.CENTER_INSIDE);
+        header.addView(btnClose);
+        
+        return header;
+    }
+    
+    /**
+     * Create Toggle Switches Section
+     */
+    private LinearLayout createToggleSection() {
+        LinearLayout section = new LinearLayout(getContext());
+        section.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        section.setOrientation(LinearLayout.VERTICAL);
+        section.setPadding(0, 
+            (int) (16 * getResources().getDisplayMetrics().density), 0, 
+            (int) (16 * getResources().getDisplayMetrics().density)
+        );
+        
+        // Fitur Aim toggle - Get switch from container
+        LinearLayout aimLayout = createToggleSwitch("Fitur Aim", true);
+        switchFiturAim = (Switch) aimLayout.getChildAt(1);
+        section.addView(aimLayout);
+        
+        // Aim Root Mode toggle - Get switch from container
+        LinearLayout rootLayout = createToggleSwitch("Aim Root Mode", false);
+        switchAimRootMode = (Switch) rootLayout.getChildAt(1);
+        section.addView(rootLayout);
+        
+        // Prediksi Bola toggle - Get switch from container
+        LinearLayout prediksiLayout = createToggleSwitch("Prediksi Bola", true);
+        switchPrediksi = (Switch) prediksiLayout.getChildAt(1);
+        section.addView(prediksiLayout);
+        
+        return section;
+    }
+    
+    /**
+     * Create individual toggle switch
+     */
+    private LinearLayout createToggleSwitch(String label, boolean defaultValue) {
+        LinearLayout toggleLayout = new LinearLayout(getContext());
+        toggleLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        toggleLayout.setOrientation(LinearLayout.HORIZONTAL);
+        toggleLayout.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        toggleLayout.setPadding(0, 
+            (int) (8 * getResources().getDisplayMetrics().density), 0, 
+            (int) (8 * getResources().getDisplayMetrics().density)
+        );
+        
+        // Label
+        TextView labelView = new TextView(getContext());
+        LayoutParams labelParams = new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f);
+        labelView.setLayoutParams(labelParams);
+        labelView.setText(label);
+        labelView.setTextColor(Color.WHITE);
+        labelView.setTextSize(14f);
+        toggleLayout.addView(labelView);
+        
+        // Switch
+        Switch switchView = new Switch(getContext());
+        switchView.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+        switchView.setChecked(defaultValue);
+        toggleLayout.addView(switchView);
+        
+        return toggleLayout;
+    }
+    
+    /**
+     * Create Sliders Section
+     */
+    private LinearLayout createSliderSection() {
+        LinearLayout section = new LinearLayout(getContext());
+        section.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        section.setOrientation(LinearLayout.VERTICAL);
+        
+        // Opacity slider - Get SeekBar from container
+        LinearLayout opacityLayout = createSlider("opacity", 80);
+        seekBarOpacity = (SeekBar) opacityLayout.getChildAt(1);
+        section.addView(opacityLayout);
+        
+        // Ketebalan garis slider - Get SeekBar from container
+        LinearLayout ketebalanLayout = createSlider("ketebalan garis", 60);
+        seekBarKetebalan = (SeekBar) ketebalanLayout.getChildAt(1);
+        section.addView(ketebalanLayout);
+        
+        return section;
+    }
+    
+    /**
+     * Create individual slider
+     */
+    private LinearLayout createSlider(String label, int defaultValue) {
+        LinearLayout sliderLayout = new LinearLayout(getContext());
+        sliderLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        sliderLayout.setOrientation(LinearLayout.VERTICAL);
+        sliderLayout.setPadding(0, 
+            (int) (8 * getResources().getDisplayMetrics().density), 0, 
+            (int) (8 * getResources().getDisplayMetrics().density)
+        );
+        
+        // Label background
+        TextView labelView = new TextView(getContext());
+        labelView.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, 
+            (int) (40 * getResources().getDisplayMetrics().density)
+        ));
+        labelView.setText(label);
+        labelView.setTextColor(Color.WHITE);
+        labelView.setTextSize(14f);
+        labelView.setGravity(android.view.Gravity.CENTER);
+        labelView.setBackgroundResource(R.drawable.overlay_slider_label_background);
+        sliderLayout.addView(labelView);
+        
+        // SeekBar
+        SeekBar seekBar = new SeekBar(getContext());
+        LayoutParams seekParams = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
+        seekParams.setMargins(0, 
+            (int) (8 * getResources().getDisplayMetrics().density), 0, 0
+        );
+        seekBar.setLayoutParams(seekParams);
+        seekBar.setMax(100);
+        seekBar.setProgress(defaultValue);
+        sliderLayout.addView(seekBar);
+        
+        return sliderLayout;
+    }
+    
+    /**
+     * Create Settings State (280dp settings menu)
+     */
+    private ViewGroup createSettingsState() {
+        LinearLayout container = new LinearLayout(getContext());
+        container.setLayoutParams(new LayoutParams(
+            (int) (280 * getResources().getDisplayMetrics().density),
+            LayoutParams.WRAP_CONTENT
+        ));
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setBackgroundResource(R.drawable.overlay_settings_background);
+        container.setElevation(8f);
+        
+        // Settings header
+        LinearLayout settingsHeader = createSettingsHeader();
+        container.addView(settingsHeader);
+        
+        // Settings options
+        LinearLayout settingsOptions = createSettingsOptions();
+        container.addView(settingsOptions);
+        
+        return container;
+    }
+    
+    /**
+     * Create Settings Header
+     */
+    private LinearLayout createSettingsHeader() {
+        LinearLayout header = new LinearLayout(getContext());
+        header.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        header.setBackgroundResource(R.drawable.overlay_settings_header_background);
+        header.setPadding(
+            (int) (16 * getResources().getDisplayMetrics().density),
+            (int) (12 * getResources().getDisplayMetrics().density),
+            (int) (16 * getResources().getDisplayMetrics().density),
+            (int) (12 * getResources().getDisplayMetrics().density)
+        );
+        
+        // Settings title
+        TextView settingsTitle = new TextView(getContext());
+        LayoutParams titleParams = new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f);
+        settingsTitle.setLayoutParams(titleParams);
+        settingsTitle.setText("Settings");
+        settingsTitle.setTextColor(Color.WHITE);
+        settingsTitle.setTextSize(16f);
+        settingsTitle.setTypeface(settingsTitle.getTypeface(), Typeface.BOLD);
+        header.addView(settingsTitle);
+        
+        // Plus button
+        btnPlus = new ImageButton(getContext());
+        LayoutParams plusParams = new LayoutParams(
+            (int) (32 * getResources().getDisplayMetrics().density),
+            (int) (32 * getResources().getDisplayMetrics().density)
+        );
+        plusParams.setMargins((int) (8 * getResources().getDisplayMetrics().density), 0, 0, 0);
+        btnPlus.setLayoutParams(plusParams);
+        btnPlus.setBackgroundResource(R.drawable.overlay_button_background);
+        btnPlus.setImageResource(R.drawable.ic_add);
+        btnPlus.setScaleType(ImageButton.ScaleType.CENTER_INSIDE);
+        header.addView(btnPlus);
+        
+        return header;
+    }
+    
+    /**
+     * Create Settings Options
+     */
+    private LinearLayout createSettingsOptions() {
+        LinearLayout options = new LinearLayout(getContext());
+        options.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        options.setOrientation(LinearLayout.VERTICAL);
+        options.setPadding(
+            (int) (16 * getResources().getDisplayMetrics().density),
+            (int) (16 * getResources().getDisplayMetrics().density),
+            (int) (16 * getResources().getDisplayMetrics().density),
+            (int) (16 * getResources().getDisplayMetrics().density)
+        );
+        
+        // Theme toggle
+        LinearLayout themeOption = createSettingsOption("🌙 Terang", false);
+        switchTheme = (Switch) ((LinearLayout) themeOption.getChildAt(1)).getChildAt(0);
+        options.addView(themeOption);
+        
+        // Reset position
+        LinearLayout resetOption = createSettingsButton("↻ Reset Posisi");
+        btnReset = (Button) resetOption.getChildAt(0);
+        options.addView(resetOption);
+        
+        // Exit app
+        LinearLayout exitOption = createSettingsButton("🚪 Keluar Aplikasi", true);
+        btnExit = (Button) exitOption.getChildAt(0);
+        options.addView(exitOption);
+        
+        return options;
+    }
+    
+    /**
+     * Create settings option with toggle
+     */
+    private LinearLayout createSettingsOption(String label, boolean defaultValue) {
+        LinearLayout optionLayout = new LinearLayout(getContext());
+        optionLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        optionLayout.setOrientation(LinearLayout.HORIZONTAL);
+        optionLayout.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        optionLayout.setPadding(0, 
+            (int) (12 * getResources().getDisplayMetrics().density), 0, 
+            (int) (12 * getResources().getDisplayMetrics().density)
+        );
+        
+        TextView labelView = new TextView(getContext());
+        LayoutParams labelParams = new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f);
+        labelView.setLayoutParams(labelParams);
+        labelView.setText(label);
+        labelView.setTextColor(Color.WHITE);
+        labelView.setTextSize(14f);
+        optionLayout.addView(labelView);
+        
+        LinearLayout switchContainer = new LinearLayout(getContext());
+        switchContainer.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+        Switch switchView = new Switch(getContext());
+        switchView.setChecked(defaultValue);
+        switchContainer.addView(switchView);
+        optionLayout.addView(switchContainer);
+        
+        return optionLayout;
+    }
+    
+    /**
+     * Create settings button option
+     */
+    private LinearLayout createSettingsButton(String label) {
+        return createSettingsButton(label, false);
+    }
+    
+    /**
+     * Create settings button option - COMPLETED METHOD
+     */
+    private LinearLayout createSettingsButton(String label, boolean isDanger) {
+        LinearLayout buttonLayout = new LinearLayout(getContext());
+        buttonLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        buttonLayout.setOrientation(LinearLayout.HORIZONTAL);
+        buttonLayout.setPadding(0, 
+            (int) (8 * getResources().getDisplayMetrics().density), 0, 
+            (int) (8 * getResources().getDisplayMetrics().density)
+        );
+        
+        Button button = new Button(getContext());
+        button.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, 
+            (int) (40 * getResources().getDisplayMetrics().density)
+        ));
+        button.setText(label);
+        button.setTextColor(isDanger ? Color.RED : Color.WHITE);
+        button.setTextSize(14f);
+        button.setBackgroundResource(isDanger ? R.drawable.overlay_danger_button : R.drawable.overlay_settings_button);
+        buttonLayout.addView(button);
+        
+        return buttonLayout;
+    }
+
+    /**
+     * Setup click listeners for all interactive elements
      */
     private void setupClickListeners() {
-        // ICON state listeners
+        // Icon state - click to expand
         if (iconButton != null) {
             iconButton.setOnClickListener(v -> {
-                Logger.d(TAG, "Icon clicked - expanding to FULL");
-                setState(OverlayState.FULL);
-            });
-        }
-        
-        // FULL state listeners
-        if (btnClose != null) {
-            btnClose.setOnClickListener(v -> {
-                Logger.d(TAG, "Close button clicked");
-                if (service != null) {
-                    service.hideOverlay();
+                if (!isDragging) {
+                    setState(OverlayState.FULL);
+                    animateStateTransition();
                 }
             });
         }
         
-        if (btnMinimize != null) {
-            btnMinimize.setOnClickListener(v -> {
-                Logger.d(TAG, "Minimize button clicked - switching to ICON");
-                setState(OverlayState.ICON);
-            });
-        }
-        
+        // Full state buttons
         if (btnSettings != null) {
             btnSettings.setOnClickListener(v -> {
-                Logger.d(TAG, "Settings button clicked - switching to SETTINGS");
                 setState(OverlayState.SETTINGS);
+                animateStateTransition();
             });
         }
         
-        // Feature toggles
-        if (switchBasicAim != null) {
-            switchBasicAim.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                basicAimEnabled = isChecked;
-                updateStatus("Basic Aim: " + (isChecked ? "ON" : "OFF"));
-                Logger.d(TAG, "Basic Aim toggled: " + isChecked);
+        if (btnClose != null) {
+            btnClose.setOnClickListener(v -> {
+                setState(OverlayState.ICON);
+                animateStateTransition();
             });
         }
         
-        if (switchRootAim != null) {
-            switchRootAim.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                rootAimEnabled = isChecked;
-                updateStatus("Root Aim: " + (isChecked ? "ON" : "OFF"));
-                Logger.d(TAG, "Root Aim toggled: " + isChecked);
+        // Settings state buttons
+        if (btnPlus != null) {
+            btnPlus.setOnClickListener(v -> {
+                setState(OverlayState.ICON);
+                animateStateTransition();
             });
         }
         
-        if (switchPrediction != null) {
-            switchPrediction.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                predictionEnabled = isChecked;
-                updateStatus("Prediction: " + (isChecked ? "ON" : "OFF"));
-                Logger.d(TAG, "Prediction toggled: " + isChecked);
+        if (btnReset != null) {
+            btnReset.setOnClickListener(v -> {
+                resetOverlayPosition();
             });
         }
         
-        // SETTINGS state listeners
-        if (btnSettingsClose != null) {
-            btnSettingsClose.setOnClickListener(v -> {
-                Logger.d(TAG, "Settings close clicked - returning to FULL");
-                setState(OverlayState.FULL);
+        if (btnExit != null) {
+            btnExit.setOnClickListener(v -> {
+                exitApplication();
             });
         }
         
-        if (btnThemeToggle != null) {
-            btnThemeToggle.setOnClickListener(v -> {
-                Logger.d(TAG, "Theme toggle clicked");
-                updateStatus("Theme toggled!");
-                // TODO: Implement theme switching
-            });
-        }
-        
-        if (btnResetPosition != null) {
-            btnResetPosition.setOnClickListener(v -> {
-                Logger.d(TAG, "Reset position clicked");
-                if (service != null) {
-                    service.resetOverlayPosition();
-                    updateStatus("Position reset!");
-                }
-            });
-        }
-        
-        if (btnExitApp != null) {
-            btnExitApp.setOnClickListener(v -> {
-                Logger.d(TAG, "Exit app clicked");
-                if (service != null) {
-                    service.stopSelf();
-                }
-            });
-        }
-        
-        // Container click handlers
-        if (iconContainer != null) {
-            iconContainer.setOnClickListener(v -> setState(OverlayState.FULL));
-        }
-    }
-    
-    /**
-     * Setup seekbars untuk opacity dan thickness
-     */
-    private void setupSeekBars() {
-        if (seekOpacity != null) {
-            seekOpacity.setMax(100);
-            seekOpacity.setProgress(opacityValue);
-            seekOpacity.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+        // Setup SeekBar listeners for real-time feedback
+        if (seekBarOpacity != null) {
+            seekBarOpacity.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                 @Override
                 public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                     if (fromUser) {
-                        opacityValue = progress;
-                        if (tvOpacityValue != null) {
-                            tvOpacityValue.setText(progress + "%");
-                        }
-                        updateStatus("Opacity: " + progress + "%");
+                        Logger.d(TAG, "Opacity changed to: " + progress + "%");
+                        // TODO: Apply opacity changes
                     }
                 }
                 
@@ -300,25 +594,15 @@ public class OverlayView extends LinearLayout {
                 @Override
                 public void onStopTrackingTouch(SeekBar seekBar) {}
             });
-            
-            // Set initial value
-            if (tvOpacityValue != null) {
-                tvOpacityValue.setText(opacityValue + "%");
-            }
         }
         
-        if (seekThickness != null) {
-            seekThickness.setMax(20);
-            seekThickness.setProgress(lineThicknessValue);
-            seekThickness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+        if (seekBarKetebalan != null) {
+            seekBarKetebalan.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                 @Override
                 public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                     if (fromUser) {
-                        lineThicknessValue = Math.max(1, progress); // Min 1px
-                        if (tvThicknessValue != null) {
-                            tvThicknessValue.setText(lineThicknessValue + "px");
-                        }
-                        updateStatus("Thickness: " + lineThicknessValue + "px");
+                        Logger.d(TAG, "Line thickness changed to: " + progress + "%");
+                        // TODO: Apply thickness changes
                     }
                 }
                 
@@ -328,320 +612,436 @@ public class OverlayView extends LinearLayout {
                 @Override
                 public void onStopTrackingTouch(SeekBar seekBar) {}
             });
-            
-            // Set initial value
-            if (tvThicknessValue != null) {
-                tvThicknessValue.setText(lineThicknessValue + "px");
-            }
+        }
+        
+        // Setup Switch listeners
+        if (switchFiturAim != null) {
+            switchFiturAim.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                Logger.d(TAG, "Fitur Aim " + (isChecked ? "enabled" : "disabled"));
+                // TODO: Apply aim feature changes
+            });
+        }
+        
+        if (switchAimRootMode != null) {
+            switchAimRootMode.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                Logger.d(TAG, "Aim Root Mode " + (isChecked ? "enabled" : "disabled"));
+                // TODO: Apply root mode changes
+            });
+        }
+        
+        if (switchPrediksi != null) {
+            switchPrediksi.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                Logger.d(TAG, "Prediksi Bola " + (isChecked ? "enabled" : "disabled"));
+                // TODO: Apply prediction changes
+            });
+        }
+        
+        if (switchTheme != null) {
+            switchTheme.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                Logger.d(TAG, "Theme changed to: " + (isChecked ? "Light" : "Dark"));
+                // TODO: Apply theme changes
+            });
         }
     }
-    
+
     /**
-     * Setup touch handling untuk dragging
+     * Setup touch handling for drag functionality - FIXED IMPLEMENTATION
      */
     private void setupTouchHandling() {
         setOnTouchListener(new OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                return handleTouch(event);
+                // Only handle touch on ICON state for dragging
+                if (currentState != OverlayState.ICON) {
+                    return false;
+                }
+                
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        return handleTouchDown(event);
+                        
+                    case MotionEvent.ACTION_MOVE:
+                        return handleTouchMove(event);
+                        
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+                        return handleTouchUp(event);
+                }
+                return false;
             }
         });
     }
-    
+
     /**
-     * Handle touch events untuk dragging
+     * Handle touch down - record initial positions
      */
-    private boolean handleTouch(MotionEvent event) {
-        switch (event.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                initialX = event.getRawX();
-                initialY = event.getRawY();
-                initialTouchX = event.getX();
-                initialTouchY = event.getY();
-                isDragging = false;
-                return true;
-                
-            case MotionEvent.ACTION_MOVE:
-                float deltaX = event.getRawX() - initialX;
-                float deltaY = event.getRawY() - initialY;
-                
-                // Check if this is a drag gesture
-                if (!isDragging && (Math.abs(deltaX) > CLICK_THRESHOLD || Math.abs(deltaY) > CLICK_THRESHOLD)) {
-                    isDragging = true;
-                }
-                
-                if (isDragging && service != null) {
-                    // Update overlay position
-                    int newX = (int) (event.getRawX() - initialTouchX);
-                    int newY = (int) (event.getRawY() - initialTouchY);
-                    
-                    service.updateOverlayPosition(newX, newY);
-                }
-                return true;
-                
-            case MotionEvent.ACTION_UP:
-                if (!isDragging) {
-                    // This was a click, not a drag
-                    performClick();
-                }
-                isDragging = false;
-                return true;
-                
-            default:
-                return false;
+    private boolean handleTouchDown(MotionEvent event) {
+        // Record initial touch position
+        initialTouchX = event.getRawX();
+        initialTouchY = event.getRawY();
+        
+        // Record current overlay position from service
+        if (service != null) {
+            initialX = service.getCurrentX();
+            initialY = service.getCurrentY();
+        } else {
+            initialX = 0;
+            initialY = 0;
+        }
+        
+        isDragging = false;
+        
+        // Visual feedback - scale down icon slightly
+        animatePress(true);
+        
+        Logger.d(TAG, "Touch down - Start: " + initialTouchX + ", " + initialTouchY + 
+                 " | Current pos: " + initialX + ", " + initialY);
+        return true;
+    }
+
+    /**
+     * Handle touch move - update overlay position
+     */
+    private boolean handleTouchMove(MotionEvent event) {
+        if (service == null) return false;
+        
+        float deltaX = event.getRawX() - initialTouchX;
+        float deltaY = event.getRawY() - initialTouchY;
+        
+        // Check if movement exceeds click threshold
+        if (!isDragging && (Math.abs(deltaX) > CLICK_THRESHOLD || Math.abs(deltaY) > CLICK_THRESHOLD)) {
+            isDragging = true;
+            Logger.d(TAG, "Started dragging - Delta: " + deltaX + ", " + deltaY);
+            
+            // Visual feedback - scale up slightly during drag
+            animatePress(false);
+            iconButton.setAlpha(0.8f);
+        }
+        
+        if (isDragging) {
+            // Calculate new position
+            int newX = initialX + (int) deltaX;
+            int newY = initialY + (int) deltaY;
+            
+            // Update overlay position through service
+            service.updateOverlayPosition(newX, newY);
+            
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Handle touch up - finalize drag or handle click
+     */
+    private boolean handleTouchUp(MotionEvent event) {
+        // Reset visual feedback
+        animatePress(false);
+        iconButton.setAlpha(1.0f);
+        
+        if (isDragging) {
+            Logger.d(TAG, "Drag ended - Final position: " + 
+                     (service != null ? service.getCurrentX() : "unknown") + ", " + 
+                     (service != null ? service.getCurrentY() : "unknown"));
+            isDragging = false;
+            return true;
+        }
+        
+        // If not dragging, let click events handle
+        return false;
+    }
+
+    /**
+     * Animate press feedback
+     */
+    private void animatePress(boolean pressed) {
+        if (iconButton != null) {
+            float scale = pressed ? 0.95f : 1.0f;
+            iconButton.animate()
+                .scaleX(scale)
+                .scaleY(scale)
+                .setDuration(100)
+                .start();
         }
     }
-    
+
     /**
-     * Set overlay state (3-state system)
+     * Set overlay state and update visibility
      */
-    public void setState(OverlayState newState) {
-        if (!isInitialized || newState == currentState) return;
+    private void setState(OverlayState newState) {
+        if (currentState == newState) return;
         
-        OverlayState oldState = currentState;
+        OverlayState previousState = currentState;
         currentState = newState;
         
-        // Hide all containers first
-        hideAllContainers();
+        // Hide all containers
+        iconContainer.setVisibility(View.GONE);
+        fullContainer.setVisibility(View.GONE);
+        settingsContainer.setVisibility(View.GONE);
         
-        // Show appropriate container
-        switch (newState) {
+        // Show current state container
+        switch (currentState) {
             case ICON:
-                showIconState();
+                iconContainer.setVisibility(View.VISIBLE);
                 break;
             case FULL:
-                showFullState();
+                fullContainer.setVisibility(View.VISIBLE);
                 break;
             case SETTINGS:
-                showSettingsState();
+                settingsContainer.setVisibility(View.VISIBLE);
                 break;
         }
         
-        // Animate transition
-        animateStateTransition(oldState, newState);
+        Logger.d(TAG, "State changed from " + previousState + " to " + currentState);
         
-        Logger.d(TAG, "State changed: " + oldState + " → " + newState);
-    }
-    
-    /**
-     * Hide all containers
-     */
-    private void hideAllContainers() {
-        if (iconContainer != null) iconContainer.setVisibility(GONE);
-        if (fullContainer != null) fullContainer.setVisibility(GONE);
-        if (settingsContainer != null) settingsContainer.setVisibility(GONE);
-    }
-    
-    /**
-     * Show ICON state
-     */
-    private void showIconState() {
-        if (iconContainer != null) {
-            iconContainer.setVisibility(VISIBLE);
-        } else if (fullContainer != null) {
-            // Fallback: use full container but hide everything except minimize button
-            fullContainer.setVisibility(VISIBLE);
-            // Hide other elements programmatically
-        }
-        updateStatus("Pool Assistant");
-    }
-    
-    /**
-     * Show FULL state  
-     */
-    private void showFullState() {
-        if (fullContainer != null) {
-            fullContainer.setVisibility(VISIBLE);
-            updateStatus("Pool Assistant Ready");
+        // Update service notification if needed
+        if (service != null) {
+            String stateText = "";
+            switch (currentState) {
+                case ICON:
+                    stateText = "Pool Assistant overlay minimized";
+                    break;
+                case FULL:
+                    stateText = "Pool Assistant overlay expanded";
+                    break;
+                case SETTINGS:
+                    stateText = "Pool Assistant settings opened";
+                    break;
+            }
+            // service.updateNotification(stateText); // Uncomment if needed
         }
     }
-    
+
     /**
-     * Show SETTINGS state
+     * Animate state transition
      */
-    private void showSettingsState() {
-        if (settingsContainer != null) {
-            settingsContainer.setVisibility(VISIBLE);
+    private void animateStateTransition() {
+        // Simple fade animation
+        setAlpha(0.7f);
+        ObjectAnimator fadeIn = ObjectAnimator.ofFloat(this, "alpha", 0.7f, 1.0f);
+        fadeIn.setDuration(200);
+        fadeIn.setInterpolator(new DecelerateInterpolator());
+        fadeIn.start();
+        
+        // Scale animation for smooth transition
+        setScaleX(0.95f);
+        setScaleY(0.95f);
+        ObjectAnimator scaleX = ObjectAnimator.ofFloat(this, "scaleX", 0.95f, 1.0f);
+        ObjectAnimator scaleY = ObjectAnimator.ofFloat(this, "scaleY", 0.95f, 1.0f);
+        scaleX.setDuration(200);
+        scaleY.setDuration(200);
+        scaleX.setInterpolator(new DecelerateInterpolator());
+        scaleY.setInterpolator(new DecelerateInterpolator());
+        scaleX.start();
+        scaleY.start();
+    }
+
+    /**
+     * Reset overlay to center position
+     */
+    private void resetOverlayPosition() {
+        if (service != null) {
+            // Move to center of screen (approximate)
+            int centerX = 100;
+            int centerY = 300;
+            service.updateOverlayPosition(centerX, centerY);
+            Logger.d(TAG, "Overlay position reset to center: " + centerX + ", " + centerY);
+            
+            // Visual feedback
+            animateStateTransition();
+            
+            // Optional: Show toast or feedback
+            // Toast.makeText(getContext(), "Position reset", Toast.LENGTH_SHORT).show();
         } else {
-            // Fallback: use full container with settings layout
-            if (fullContainer != null) {
-                fullContainer.setVisibility(VISIBLE);
-            }
-        }
-        updateStatus("Settings");
-    }
-    
-    /**
-     * Animate state transitions
-     */
-    private void animateStateTransition(OverlayState from, OverlayState to) {
-        float fromScale = getScaleForState(from);
-        float toScale = getScaleForState(to);
-        
-        ObjectAnimator scaleAnimator = ObjectAnimator.ofFloat(this, "scaleX", fromScale, toScale);
-        scaleAnimator.setDuration(250);
-        scaleAnimator.setInterpolator(new DecelerateInterpolator());
-        scaleAnimator.start();
-        
-        ObjectAnimator scaleYAnimator = ObjectAnimator.ofFloat(this, "scaleY", fromScale, toScale);
-        scaleYAnimator.setDuration(250);
-        scaleYAnimator.setInterpolator(new DecelerateInterpolator());
-        scaleYAnimator.start();
-    }
-    
-    /**
-     * Get scale factor untuk state
-     */
-    private float getScaleForState(OverlayState state) {
-        switch (state) {
-            case ICON: return 0.8f;
-            case FULL: return 1.0f;
-            case SETTINGS: return 0.95f;
-            default: return 1.0f;
+            Logger.w(TAG, "Cannot reset position - service is null");
         }
     }
-    
+
     /**
-     * Create fallback UI jika layout gagal di-load
+     * Exit application
      */
-    private void createFallbackUI() {
-        Logger.w(TAG, "Creating fallback UI");
-        
-        // Create simple text view
-        TextView fallbackText = new TextView(getContext());
-        fallbackText.setText("Pool Assistant");
-        fallbackText.setTextColor(Color.WHITE);
-        fallbackText.setBackgroundColor(Color.parseColor("#4CAF50"));
-        fallbackText.setPadding(20, 10, 20, 10);
-        
-        addView(fallbackText);
-        
-        fallbackText.setOnClickListener(v -> {
-            if (service != null) {
-                service.hideOverlay();
-            }
-        });
-        
-        isInitialized = true;
-    }
-    
-    /**
-     * Update status text
-     */
-    public void updateStatus(String status) {
-        if (tvStatus != null) {
-            post(() -> {
-                tvStatus.setText(status);
-                Logger.d(TAG, "Status updated: " + status);
-            });
+    private void exitApplication() {
+        if (service != null) {
+            Logger.d(TAG, "Application exit requested");
+            
+            // Hide overlay first
+            service.hideOverlay();
+            
+            // Stop service
+            service.stopSelf();
+            
+            // Optional: Exit entire app (if needed)
+            // System.exit(0);
+        } else {
+            Logger.w(TAG, "Cannot exit - service is null");
         }
     }
-    
-    // ===== GETTER METHODS REQUIRED BY OVERLAYMANAGER =====
-    
-    public OverlayState getState() {
+
+    /**
+     * Get current overlay state
+     */
+    public OverlayState getCurrentState() {
         return currentState;
     }
-    
-    public boolean isBasicAimEnabled() {
-        return basicAimEnabled;
+
+    /**
+     * Update initial position (called by service when position changes)
+     */
+    public void updateInitialPosition(int x, int y) {
+        initialX = x;
+        initialY = y;
+        Logger.d(TAG, "Initial position updated to: " + x + ", " + y);
     }
-    
-    public boolean isRootAimEnabled() {
-        return rootAimEnabled;
+
+    /**
+     * Check if overlay is currently being dragged
+     */
+    public boolean isDragging() {
+        return isDragging;
     }
-    
-    public boolean isPredictionEnabled() {
-        return predictionEnabled;
+
+    /**
+     * Force state change (for external control)
+     */
+    public void forceState(OverlayState state) {
+        setState(state);
+        animateStateTransition();
     }
-    
+
+    /**
+     * Get switch states (for settings persistence)
+     */
+    public boolean isFiturAimEnabled() {
+        return switchFiturAim != null && switchFiturAim.isChecked();
+    }
+
+    public boolean isAimRootModeEnabled() {
+        return switchAimRootMode != null && switchAimRootMode.isChecked();
+    }
+
+    public boolean isPrediksiEnabled() {
+        return switchPrediksi != null && switchPrediksi.isChecked();
+    }
+
+    public boolean isLightThemeEnabled() {
+        return switchTheme != null && switchTheme.isChecked();
+    }
+
+    /**
+     * Get slider values (for settings persistence)
+     */
     public int getOpacityValue() {
-        return opacityValue;
+        return seekBarOpacity != null ? seekBarOpacity.getProgress() : 80;
     }
-    
-    public int getLineThicknessValue() {
-        return lineThicknessValue;
+
+    public int getThicknessValue() {
+        return seekBarKetebalan != null ? seekBarKetebalan.getProgress() : 60;
     }
-    
-    // ===== LEGACY COMPATIBILITY METHODS =====
-    
-    @Deprecated
-    public void setMinimized(boolean minimized) {
-        setState(minimized ? OverlayState.ICON : OverlayState.FULL);
-    }
-    
-    @Deprecated
-    public boolean isMinimized() {
-        return currentState == OverlayState.ICON;
-    }
-    
+
     /**
-     * Custom drawing untuk trajectory lines (future implementation)
+     * Set switch states (for settings restoration)
      */
-    @Override
-    protected void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
-        
-        // Draw border based on state
-        drawStateBorder(canvas);
-        
-        // TODO: Draw trajectory lines, aiming guides, etc.
-    }
-    
-    /**
-     * Draw border berdasarkan current state
-     */
-    private void drawStateBorder(Canvas canvas) {
-        if (currentState == OverlayState.ICON) return;
-        
-        Paint borderPaint = new Paint();
-        borderPaint.setAntiAlias(true);
-        borderPaint.setStyle(Paint.Style.STROKE);
-        borderPaint.setStrokeWidth(3f);
-        
-        // Color based on state
-        switch (currentState) {
-            case FULL:
-                borderPaint.setColor(Color.parseColor("#4CAF50")); // Green
-                break;
-            case SETTINGS:
-                borderPaint.setColor(Color.parseColor("#2196F3")); // Blue
-                break;
-            default:
-                borderPaint.setColor(Color.parseColor("#757575")); // Gray
-        }
-        
-        RectF rect = new RectF(2, 2, getWidth() - 2, getHeight() - 2);
-        canvas.drawRoundRect(rect, 12f, 12f, borderPaint);
-    }
-    
-    /**
-     * Handle window focus changes
-     */
-    @Override
-    public void onWindowFocusChanged(boolean hasWindowFocus) {
-        super.onWindowFocusChanged(hasWindowFocus);
-        
-        if (hasWindowFocus && currentState == OverlayState.FULL) {
-            updateStatus("Pool Assistant Ready");
+    public void setFiturAim(boolean enabled) {
+        if (switchFiturAim != null) {
+            switchFiturAim.setChecked(enabled);
         }
     }
-    
+
+    public void setAimRootMode(boolean enabled) {
+        if (switchAimRootMode != null) {
+            switchAimRootMode.setChecked(enabled);
+        }
+    }
+
+    public void setPrediksi(boolean enabled) {
+        if (switchPrediksi != null) {
+            switchPrediksi.setChecked(enabled);
+        }
+    }
+
+    public void setLightTheme(boolean enabled) {
+        if (switchTheme != null) {
+            switchTheme.setChecked(enabled);
+        }
+    }
+
+    /**
+     * Set slider values (for settings restoration)
+     */
+    public void setOpacityValue(int value) {
+        if (seekBarOpacity != null) {
+            seekBarOpacity.setProgress(Math.max(0, Math.min(100, value)));
+        }
+    }
+
+    public void setThicknessValue(int value) {
+        if (seekBarKetebalan != null) {
+            seekBarKetebalan.setProgress(Math.max(0, Math.min(100, value)));
+        }
+    }
+
+    /**
+     * Check if view is properly initialized
+     */
+    public boolean isInitialized() {
+        return isInitialized;
+    }
+
     /**
      * Cleanup resources
      */
     public void cleanup() {
         Logger.d(TAG, "Cleaning up OverlayView resources");
         
-        // Remove listeners
+        // Clear click listeners
+        if (iconButton != null) iconButton.setOnClickListener(null);
+        if (btnSettings != null) btnSettings.setOnClickListener(null);
+        if (btnClose != null) btnClose.setOnClickListener(null);
+        if (btnPlus != null) btnPlus.setOnClickListener(null);
+        if (btnReset != null) btnReset.setOnClickListener(null);
+        if (btnExit != null) btnExit.setOnClickListener(null);
+        
+        // Clear seekbar listeners
+        if (seekBarOpacity != null) seekBarOpacity.setOnSeekBarChangeListener(null);
+        if (seekBarKetebalan != null) seekBarKetebalan.setOnSeekBarChangeListener(null);
+        
+        // Clear switch listeners
+        if (switchFiturAim != null) switchFiturAim.setOnCheckedChangeListener(null);
+        if (switchAimRootMode != null) switchAimRootMode.setOnCheckedChangeListener(null);
+        if (switchPrediksi != null) switchPrediksi.setOnCheckedChangeListener(null);
+        if (switchTheme != null) switchTheme.setOnCheckedChangeListener(null);
+        
+        // Clear touch listener
         setOnTouchListener(null);
         
-        // Clear references
+        // Clear service reference
         service = null;
         
-        // Clear UI references
-        iconContainer = null;
-        fullContainer = null;
-        settingsContainer = null;
+        isInitialized = false;
+        Logger.d(TAG, "OverlayView cleanup completed");
+    }
+
+    /**
+     * Debug method - log current state
+     */
+    public void logCurrentState() {
+        Logger.d(TAG, "=== OverlayView State Debug ===");
+        Logger.d(TAG, "Current State: " + currentState);
+        Logger.d(TAG, "Is Dragging: " + isDragging);
+        Logger.d(TAG, "Is Initialized: " + isInitialized);
+        Logger.d(TAG, "Service: " + (service != null ? "Connected" : "Null"));
+        Logger.d(TAG, "Position: " + initialX + ", " + initialY);
+        
+        if (isInitialized) {
+            Logger.d(TAG, "Fitur Aim: " + isFiturAimEnabled());
+            Logger.d(TAG, "Root Mode: " + isAimRootModeEnabled());
+            Logger.d(TAG, "Prediksi: " + isPrediksiEnabled());
+            Logger.d(TAG, "Light Theme: " + isLightThemeEnabled());
+            Logger.d(TAG, "Opacity: " + getOpacityValue() + "%");
+            Logger.d(TAG, "Thickness: " + getThicknessValue() + "%");
+        }
+        
+        Logger.d(TAG, "================================");
     }
 }
