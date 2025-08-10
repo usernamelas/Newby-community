@@ -720,8 +720,8 @@ public class OverlayView extends LinearLayout {
         
         if (isDragging) {
             // Calculate new position
-            int newX = initialX + Math.round(deltaX);
-            int newY = initialY + Math.round(deltaY);
+            int newX = Math.round(initialX + deltaX);
+            int newY = Math.round(initialY + deltaY);
             
             // Update overlay position through service
             service.updateOverlayPosition(newX, newY);
