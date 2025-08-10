@@ -720,8 +720,8 @@ public class OverlayView extends LinearLayout {
         
         if (isDragging) {
             // Calculate new position
-            int newX = initialX + (int) deltaX;
-            int newY = initialY + (int) deltaY;
+            int newX = initialX + Math.round(deltaX);
+            int newY = initialY + Math.round(deltaY);
             
             // Update overlay position through service
             service.updateOverlayPosition(newX, newY);
@@ -769,7 +769,7 @@ public class OverlayView extends LinearLayout {
     /**
      * Set overlay state and update visibility
      */
-    private void setState(OverlayState newState) {
+    public void setState(OverlayState newState) {
         if (currentState == newState) return;
         
         OverlayState previousState = currentState;
@@ -1044,4 +1044,21 @@ public class OverlayView extends LinearLayout {
         
         Logger.d(TAG, "================================");
     }
+    
+    public boolean isBasicAimEnabled() {
+    return isFiturAimEnabled();
+    }
+    
+    public boolean isRootAimEnabled() {
+        return isAimRootModeEnabled();
+    }
+    
+    public boolean isPredictionEnabled() {
+        return isPrediksiEnabled();
+    }
+    
+    public int getLineThicknessValue() {
+        return getThicknessValue();
+    }
+
 }
