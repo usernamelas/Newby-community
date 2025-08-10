@@ -124,8 +124,8 @@ public class OverlayView extends LinearLayout {
     private ViewGroup createIconState() {
         LinearLayout container = new LinearLayout(getContext());
         container.setLayoutParams(new LayoutParams(
-            (int) (96 * getResources().getDisplayMetrics().density), // FIXED: 64dp → 48dp
-            (int) (96 * getResources().getDisplayMetrics().density)
+            (int) (72 * getResources().getDisplayMetrics().density), // FIXED: 64dp → 48dp
+            (int) (72 * getResources().getDisplayMetrics().density)
         ));
         container.setOrientation(LinearLayout.VERTICAL);
         container.setGravity(android.view.Gravity.CENTER);
@@ -135,8 +135,8 @@ public class OverlayView extends LinearLayout {
         // Pool assistant icon - using clean app icon
         iconButton = new ImageButton(getContext());
         LayoutParams iconParams = new LayoutParams(
-            (int) (88 * getResources().getDisplayMetrics().density), // FIXED: Proportional resize 
-            (int) (88 * getResources().getDisplayMetrics().density)
+            (int) (64 * getResources().getDisplayMetrics().density), // FIXED: Proportional resize 
+            (int) (64 * getResources().getDisplayMetrics().density)
         );
         iconButton.setLayoutParams(iconParams);
         
