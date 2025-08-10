@@ -26,7 +26,7 @@ import com.victory.poolassistant.core.Logger;
 /**
  * Fixed 3-State Overlay System untuk Pool Assistant
  * States: ICON → FULL → SETTINGS
- * FIXED: Icon size & appearance improved + DRAGGABLE FUNCTIONALITY
+ * FIXED: Icon size & appearance improved + DRAGGABLE FUNCTIONALITY + SNAP TO EDGE
  */
 public class OverlayView extends LinearLayout {
     
@@ -93,28 +93,38 @@ public class OverlayView extends LinearLayout {
      */
     private void initView() {
         try {
+            Logger.d(TAG, "🚀 Starting initView()...");
+            
             // Create containers
             iconContainer = createIconState();
             fullContainer = createFullState();
             settingsContainer = createSettingsState();
+            
+            Logger.d(TAG, "📦 Containers created");
             
             // Add all containers
             addView(iconContainer);
             addView(fullContainer);
             addView(settingsContainer);
             
+            Logger.d(TAG, "📦 Containers added to view");
+            
             // Setup interactions
             setupClickListeners();
+            Logger.d(TAG, "🖱️ Click listeners setup");
+            
             setupTouchHandling();
+            Logger.d(TAG, "👆 Touch handling setup");
             
             // Set initial state
             setState(OverlayState.ICON);
+            Logger.d(TAG, "🎯 Initial state set to ICON");
             
             isInitialized = true;
-            Logger.d(TAG, "3-State OverlayView initialized successfully");
+            Logger.d(TAG, "✅ OverlayView initialized successfully");
             
         } catch (Exception e) {
-            Logger.e(TAG, "Failed to initialize OverlayView", e);
+            Logger.e(TAG, "❌ Failed to initialize OverlayView", e);
         }
     }
     
@@ -124,34 +134,30 @@ public class OverlayView extends LinearLayout {
     private ViewGroup createIconState() {
         LinearLayout container = new LinearLayout(getContext());
         container.setLayoutParams(new LayoutParams(
-            (int) (72 * getResources().getDisplayMetrics().density), // FIXED: 64dp → 48dp
+            (int) (72 * getResources().getDisplayMetrics().density), 
             (int) (72 * getResources().getDisplayMetrics().density)
         ));
         container.setOrientation(LinearLayout.VERTICAL);
         container.setGravity(android.view.Gravity.CENTER);
-        // REMOVED: Blue background - now minimal styling
         container.setElevation(8f);
         
         // Pool assistant icon - using clean app icon
         iconButton = new ImageButton(getContext());
         LayoutParams iconParams = new LayoutParams(
-            (int) (64 * getResources().getDisplayMetrics().density), // FIXED: Proportional resize 
+            (int) (64 * getResources().getDisplayMetrics().density), 
             (int) (64 * getResources().getDisplayMetrics().density)
         );
         iconButton.setLayoutParams(iconParams);
         
         // FIXED: Clean appearance - no blue background
         iconButton.setBackground(null); // Transparent background
-        iconButton.setImageResource(R.drawable.ic_pool_assistant_icon); // FIXED: Use copied app icon
+        iconButton.setImageResource(R.drawable.ic_pool_assistant_icon);
         iconButton.setScaleType(ImageButton.ScaleType.CENTER_INSIDE);
         
-        // OPTIONAL: Add subtle shadow/border for better visibility
+        // Add subtle shadow/border for better visibility
         iconButton.setElevation(4f);
         
         container.addView(iconButton);
-        
-        // REMOVED: Green status indicator - cleaner look
-        // No green dot clutter
         
         return container;
     }
@@ -532,19 +538,24 @@ public class OverlayView extends LinearLayout {
      * Setup click listeners for all interactive elements
      */
     private void setupClickListeners() {
+        Logger.d(TAG, "🖱️ Setting up click listeners...");
+        
         // Icon state - click to expand
         if (iconButton != null) {
             iconButton.setOnClickListener(v -> {
+                Logger.d(TAG, "🖱️ Icon clicked - isDragging: " + isDragging);
                 if (!isDragging) {
                     setState(OverlayState.FULL);
                     animateStateTransition();
                 }
             });
+            Logger.d(TAG, "✅ Icon click listener set");
         }
         
         // Full state buttons
         if (btnSettings != null) {
             btnSettings.setOnClickListener(v -> {
+                Logger.d(TAG, "🖱️ Settings button clicked");
                 setState(OverlayState.SETTINGS);
                 animateStateTransition();
             });
@@ -552,6 +563,7 @@ public class OverlayView extends LinearLayout {
         
         if (btnClose != null) {
             btnClose.setOnClickListener(v -> {
+                Logger.d(TAG, "🖱️ Close button clicked");
                 setState(OverlayState.ICON);
                 animateStateTransition();
             });
@@ -560,6 +572,7 @@ public class OverlayView extends LinearLayout {
         // Settings state buttons
         if (btnPlus != null) {
             btnPlus.setOnClickListener(v -> {
+                Logger.d(TAG, "🖱️ Plus button clicked");
                 setState(OverlayState.ICON);
                 animateStateTransition();
             });
@@ -567,12 +580,14 @@ public class OverlayView extends LinearLayout {
         
         if (btnReset != null) {
             btnReset.setOnClickListener(v -> {
+                Logger.d(TAG, "🖱️ Reset button clicked");
                 resetOverlayPosition();
             });
         }
         
         if (btnExit != null) {
             btnExit.setOnClickListener(v -> {
+                Logger.d(TAG, "🖱️ Exit button clicked");
                 exitApplication();
             });
         }
@@ -584,7 +599,6 @@ public class OverlayView extends LinearLayout {
                 public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                     if (fromUser) {
                         Logger.d(TAG, "Opacity changed to: " + progress + "%");
-                        // TODO: Apply opacity changes
                     }
                 }
                 
@@ -602,7 +616,6 @@ public class OverlayView extends LinearLayout {
                 public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                     if (fromUser) {
                         Logger.d(TAG, "Line thickness changed to: " + progress + "%");
-                        // TODO: Apply thickness changes
                     }
                 }
                 
@@ -618,28 +631,24 @@ public class OverlayView extends LinearLayout {
         if (switchFiturAim != null) {
             switchFiturAim.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 Logger.d(TAG, "Fitur Aim " + (isChecked ? "enabled" : "disabled"));
-                // TODO: Apply aim feature changes
             });
         }
         
         if (switchAimRootMode != null) {
             switchAimRootMode.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 Logger.d(TAG, "Aim Root Mode " + (isChecked ? "enabled" : "disabled"));
-                // TODO: Apply root mode changes
             });
         }
         
         if (switchPrediksi != null) {
             switchPrediksi.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 Logger.d(TAG, "Prediksi Bola " + (isChecked ? "enabled" : "disabled"));
-                // TODO: Apply prediction changes
             });
         }
         
         if (switchTheme != null) {
             switchTheme.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 Logger.d(TAG, "Theme changed to: " + (isChecked ? "Light" : "Dark"));
-                // TODO: Apply theme changes
             });
         }
     }
@@ -648,16 +657,27 @@ public class OverlayView extends LinearLayout {
      * Setup touch handling for drag functionality - FIXED IMPLEMENTATION
      */
     private void setupTouchHandling() {
+        Logger.d(TAG, "=== SETTING UP TOUCH HANDLING ===");
+        Logger.d(TAG, "Current state: " + currentState);
+        Logger.d(TAG, "Service: " + (service != null ? "Connected" : "NULL"));
+        
+        // Set touch listener on the entire view
         setOnTouchListener(new OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
+                Logger.d(TAG, "🔥 TOUCH EVENT RECEIVED! Action: " + event.getAction() + ", State: " + currentState);
+                
                 // Only handle touch on ICON state for dragging
                 if (currentState != OverlayState.ICON) {
+                    Logger.d(TAG, "❌ Touch ignored - Current state is: " + currentState + " (not ICON)");
                     return false;
                 }
                 
+                Logger.d(TAG, "✅ Processing touch in ICON state");
+                
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
+                        Logger.d(TAG, "👆 ACTION_DOWN detected");
                         return handleTouchDown(event);
                         
                     case MotionEvent.ACTION_MOVE:
@@ -665,17 +685,38 @@ public class OverlayView extends LinearLayout {
                         
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_CANCEL:
+                        Logger.d(TAG, "👆 ACTION_UP/CANCEL detected");
                         return handleTouchUp(event);
                 }
+                
+                Logger.d(TAG, "❓ Unhandled touch action: " + event.getAction());
                 return false;
             }
         });
+        
+        // TAMBAHAN: Set touch listener juga pada icon button untuk backup
+        if (iconButton != null) {
+            iconButton.setOnTouchListener(new OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    Logger.d(TAG, "🔥 ICON BUTTON TOUCH! Action: " + event.getAction());
+                    
+                    // Forward touch events to parent handling
+                    return OverlayView.this.onTouchEvent(event);
+                }
+            });
+            Logger.d(TAG, "✅ Icon button touch listener set");
+        }
+        
+        Logger.d(TAG, "✅ Touch handling setup completed");
     }
 
     /**
      * Handle touch down - record initial positions
      */
     private boolean handleTouchDown(MotionEvent event) {
+        Logger.d(TAG, "🟢 handleTouchDown called");
+        
         // Record initial touch position
         initialTouchX = event.getRawX();
         initialTouchY = event.getRawY();
@@ -684,9 +725,11 @@ public class OverlayView extends LinearLayout {
         if (service != null) {
             initialX = service.getCurrentX();
             initialY = service.getCurrentY();
+            Logger.d(TAG, "✅ Got position from service: " + initialX + ", " + initialY);
         } else {
             initialX = 0;
             initialY = 0;
+            Logger.w(TAG, "⚠️ Service is null, using default position");
         }
         
         isDragging = false;
@@ -703,7 +746,10 @@ public class OverlayView extends LinearLayout {
      * Handle touch move - update overlay position
      */
     private boolean handleTouchMove(MotionEvent event) {
-        if (service == null) return false;
+        if (service == null) {
+            Logger.w(TAG, "⚠️ Service is null in handleTouchMove");
+            return false;
+        }
         
         float deltaX = event.getRawX() - initialTouchX;
         float deltaY = event.getRawY() - initialTouchY;
@@ -711,7 +757,7 @@ public class OverlayView extends LinearLayout {
         // Check if movement exceeds click threshold
         if (!isDragging && (Math.abs(deltaX) > CLICK_THRESHOLD || Math.abs(deltaY) > CLICK_THRESHOLD)) {
             isDragging = true;
-            Logger.d(TAG, "Started dragging - Delta: " + deltaX + ", " + deltaY);
+            Logger.d(TAG, "🚀 Started dragging - Delta: " + deltaX + ", " + deltaY);
             
             // Visual feedback - scale up slightly during drag
             animatePress(false);
@@ -736,6 +782,8 @@ public class OverlayView extends LinearLayout {
      * Handle touch up - finalize drag or handle click
      */
     private boolean handleTouchUp(MotionEvent event) {
+        Logger.d(TAG, "🔴 handleTouchUp called - isDragging: " + isDragging);
+        
         // Reset visual feedback
         animatePress(false);
         iconButton.setAlpha(1.0f);
@@ -745,16 +793,19 @@ public class OverlayView extends LinearLayout {
                      (service != null ? service.getCurrentX() : "unknown") + ", " + 
                      (service != null ? service.getCurrentY() : "unknown"));
             
-            // TAMBAH INI: Trigger snap to edge setelah drag selesai
+            // SNAP TO EDGE setelah drag selesai
             if (service != null) {
+                Logger.d(TAG, "🎯 Triggering snap to edge...");
                 service.snapToEdge();
+            } else {
+                Logger.w(TAG, "⚠️ Cannot snap - service is null");
             }
             
             isDragging = false;
             return true;
         }
         
-        // If not dragging, let click events handle
+        Logger.d(TAG, "Not dragging - allowing click events");
         return false;
     }
 
@@ -773,13 +824,15 @@ public class OverlayView extends LinearLayout {
     }
 
     /**
-     * Set overlay state and update visibility
+     * Set overlay state and update visibility - FIXED TO PUBLIC
      */
     public void setState(OverlayState newState) {
         if (currentState == newState) return;
         
         OverlayState previousState = currentState;
         currentState = newState;
+        
+        Logger.d(TAG, "🔄 State changing from " + previousState + " to " + currentState);
         
         // Hide all containers
         iconContainer.setVisibility(View.GONE);
@@ -790,12 +843,15 @@ public class OverlayView extends LinearLayout {
         switch (currentState) {
             case ICON:
                 iconContainer.setVisibility(View.VISIBLE);
+                Logger.d(TAG, "📱 Icon container visible");
                 break;
             case FULL:
                 fullContainer.setVisibility(View.VISIBLE);
+                Logger.d(TAG, "📋 Full container visible");
                 break;
             case SETTINGS:
                 settingsContainer.setVisibility(View.VISIBLE);
+                Logger.d(TAG, "⚙️ Settings container visible");
                 break;
         }
         
@@ -815,7 +871,6 @@ public class OverlayView extends LinearLayout {
                     stateText = "Pool Assistant settings opened";
                     break;
             }
-            // service.updateNotification(stateText); // Uncomment if needed
         }
     }
 
@@ -856,9 +911,6 @@ public class OverlayView extends LinearLayout {
             
             // Visual feedback
             animateStateTransition();
-            
-            // Optional: Show toast or feedback
-            // Toast.makeText(getContext(), "Position reset", Toast.LENGTH_SHORT).show();
         } else {
             Logger.w(TAG, "Cannot reset position - service is null");
         }
@@ -876,9 +928,6 @@ public class OverlayView extends LinearLayout {
             
             // Stop service
             service.stopSelf();
-            
-            // Optional: Exit entire app (if needed)
-            // System.exit(0);
         } else {
             Logger.w(TAG, "Cannot exit - service is null");
         }
@@ -1020,6 +1069,7 @@ public class OverlayView extends LinearLayout {
         
         // Clear touch listener
         setOnTouchListener(null);
+        if (iconButton != null) iconButton.setOnTouchListener(null);
         
         // Clear service reference
         service = null;
@@ -1050,21 +1100,49 @@ public class OverlayView extends LinearLayout {
         
         Logger.d(TAG, "================================");
     }
-    
+
+    /**
+     * Method untuk kompatibilitas dengan OverlayManager
+     */
     public boolean isBasicAimEnabled() {
-    return isFiturAimEnabled();
+        return isFiturAimEnabled();
     }
-    
+
     public boolean isRootAimEnabled() {
         return isAimRootModeEnabled();
     }
-    
+
     public boolean isPredictionEnabled() {
         return isPrediksiEnabled();
     }
-    
+
     public int getLineThicknessValue() {
         return getThicknessValue();
     }
 
+    /**
+     * Force refresh touch handling (untuk troubleshooting)
+     */
+    public void refreshTouchHandling() {
+        Logger.d(TAG, "🔄 Refreshing touch handling...");
+        setupTouchHandling();
+    }
+
+    /**
+     * Test method untuk cek apakah touch berfungsi
+     */
+    public void testTouch() {
+        Logger.d(TAG, "🧪 TOUCH TEST:");
+        Logger.d(TAG, "- Has OnTouchListener: " + (getOnTouchListener() != null));
+        Logger.d(TAG, "- Is Clickable: " + isClickable());
+        Logger.d(TAG, "- Is Enabled: " + isEnabled());
+        Logger.d(TAG, "- Current State: " + currentState);
+        Logger.d(TAG, "- Service Connected: " + (service != null));
+        
+        if (iconButton != null) {
+            Logger.d(TAG, "- Icon Button Clickable: " + iconButton.isClickable());
+            Logger.d(TAG, "- Icon Button Enabled: " + iconButton.isEnabled());
+            Logger.d(TAG, "- Icon Button OnTouchListener: " + (iconButton.getOnTouchListener() != null));
+        }
+    }
 }
