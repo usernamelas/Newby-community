@@ -1,314 +1,479 @@
 package com.victory.poolassistant.overlay;
 
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
-import android.graphics.PixelFormat;
-import android.os.Build;
-import android.os.IBinder;
 import android.provider.Settings;
-import android.view.Gravity;
-import android.view.LayoutInflater;
-import android.view.View;
 import android.view.WindowManager;
-import androidx.annotation.Nullable;
-import androidx.core.app.NotificationCompat;
 
-import com.victory.poolassistant.MainActivity;
-import com.victory.poolassistant.R;
 import com.victory.poolassistant.core.Logger;
+import com.victory.poolassistant.utils.PermissionHelper;
 
 /**
- * Foreground service untuk floating overlay Pool Assistant
- * Handles window management dan lifecycle overlay
+ * Enhanced OverlayManager untuk coordinate 3-state overlay system
+ * Manages overlay lifecycle, permissions, dan state transitions
  */
-public class FloatingOverlayService extends Service {
+public class OverlayManager {
     
-    private static final String TAG = "FloatingOverlayService";
-    private static final String CHANNEL_ID = "pool_assistant_overlay";
-    private static final int NOTIFICATION_ID = 1001;
+    private static final String TAG = "OverlayManager";
+    private static OverlayManager instance;
     
-    // Actions
-    public static final String ACTION_START_OVERLAY = "com.victory.poolassistant.START_OVERLAY";
-    public static final String ACTION_STOP_OVERLAY = "com.victory.poolassistant.STOP_OVERLAY";
-    public static final String ACTION_TOGGLE_OVERLAY = "com.victory.poolassistant.TOGGLE_OVERLAY";
-    
-    // Window management
-    private WindowManager windowManager;
+    private Context context;
+    private OverlayWindowManager windowManager;
     private OverlayView overlayView;
-    private WindowManager.LayoutParams layoutParams;
+    private FloatingOverlayService overlayService;
+    private OnOverlayStateChangeListener stateChangeListener;
     
-    // State
-    private boolean isOverlayVisible = false;
-    private static FloatingOverlayService instance;
+    // State tracking
+    private boolean isOverlayShowing = false;
+    private OverlayView.OverlayState lastKnownState = OverlayView.OverlayState.FULL;
     
-    @Override
-    public void onCreate() {
-        super.onCreate();
-        Logger.d(TAG, "FloatingOverlayService created");
-        
-        instance = this;
-        windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
-        createNotificationChannel();
-        
-        // Initialize overlay view
-        initializeOverlayView();
-    }
-    
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        Logger.d(TAG, "onStartCommand: " + (intent != null ? intent.getAction() : "null"));
-        
-        // Start as foreground service
-        startForeground(NOTIFICATION_ID, createNotification());
-        
-        if (intent != null) {
-            String action = intent.getAction();
-            
-            switch (action != null ? action : "") {
-                case ACTION_START_OVERLAY:
-                    showOverlay();
-                    break;
-                case ACTION_STOP_OVERLAY:
-                    hideOverlay();
-                    break;
-                case ACTION_TOGGLE_OVERLAY:
-                    toggleOverlay();
-                    break;
-                default:
-                    // Default behavior - show overlay
-                    showOverlay();
-                    break;
-            }
-        }
-        
-        // Service akan restart jika di-kill system
-        return START_STICKY;
-    }
-    
-    @Override
-    public void onDestroy() {
-        Logger.d(TAG, "FloatingOverlayService destroyed");
-        
-        hideOverlay();
-        instance = null;
-        super.onDestroy();
-    }
-    
-    @Nullable
-    @Override
-    public IBinder onBind(Intent intent) {
-        return null; // Service tidak di-bind
-    }
+    // Position tracking
+    private int lastX = 100;
+    private int lastY = 100;
+    private int defaultX = 100;
+    private int defaultY = 100;
     
     /**
-     * Initialize overlay view dan layout parameters
+     * Singleton getInstance method
      */
-    private void initializeOverlayView() {
-        try {
-            // Create overlay view
-            overlayView = new OverlayView(this);
-            
-            // Setup window layout parameters
-            int layoutFlag;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
-            } else {
-                layoutFlag = WindowManager.LayoutParams.TYPE_PHONE;
-            }
-            
-            layoutParams = new WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                layoutFlag,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN |
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                PixelFormat.TRANSLUCENT
-            );
-            
-            // Position overlay
-            layoutParams.gravity = Gravity.TOP | Gravity.START;
-            layoutParams.x = 100; // Initial X position
-            layoutParams.y = 100; // Initial Y position
-            
-            Logger.d(TAG, "Overlay view initialized successfully");
-            
-        } catch (Exception e) {
-            Logger.e(TAG, "Failed to initialize overlay view", e);
+    public static synchronized OverlayManager getInstance(Context context) {
+        if (instance == null) {
+            instance = new OverlayManager(context.getApplicationContext());
         }
-    }
-    
-    /**
-     * Show floating overlay
-     */
-    public void showOverlay() {
-        if (isOverlayVisible || overlayView == null) {
-            Logger.w(TAG, "Cannot show overlay - already visible or view is null");
-            return;
-        }
-        
-        // Check overlay permission
-        if (!Settings.canDrawOverlays(this)) {
-            Logger.e(TAG, "No overlay permission - cannot show overlay");
-            // TODO: Notify user about permission requirement
-            return;
-        }
-        
-        try {
-            windowManager.addView(overlayView, layoutParams);
-            isOverlayVisible = true;
-            
-            Logger.i(TAG, "Overlay shown successfully");
-            
-            // Update notification
-            updateNotification("Pool Assistant overlay active");
-            
-        } catch (Exception e) {
-            Logger.e(TAG, "Failed to show overlay", e);
-            isOverlayVisible = false;
-        }
-    }
-    
-    /**
-     * Hide floating overlay
-     */
-    public void hideOverlay() {
-        if (!isOverlayVisible || overlayView == null) {
-            Logger.w(TAG, "Cannot hide overlay - not visible or view is null");
-            return;
-        }
-        
-        try {
-            windowManager.removeView(overlayView);
-            isOverlayVisible = false;
-            
-            Logger.i(TAG, "Overlay hidden successfully");
-            
-            // Update notification
-            updateNotification("Pool Assistant overlay hidden");
-            
-        } catch (Exception e) {
-            Logger.e(TAG, "Failed to hide overlay", e);
-        }
-    }
-    
-    /**
-     * Toggle overlay visibility
-     */
-    public void toggleOverlay() {
-        if (isOverlayVisible) {
-            hideOverlay();
-        } else {
-            showOverlay();
-        }
-    }
-    
-    /**
-     * Create notification channel untuk Android O+
-     */
-    private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                CHANNEL_ID,
-                "Pool Assistant Overlay",
-                NotificationManager.IMPORTANCE_LOW
-            );
-            channel.setDescription("Floating overlay service for Pool Assistant");
-            channel.setShowBadge(false);
-            
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            if (manager != null) {
-                manager.createNotificationChannel(channel);
-            }
-        }
-    }
-    
-    /**
-     * Create foreground service notification
-     */
-    private Notification createNotification() {
-        return createNotificationWithText("Pool Assistant is running");
-    }
-    
-    /**
-     * Create notification dengan custom text
-     */
-    private Notification createNotificationWithText(String text) {
-        Intent intent = new Intent(this, MainActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-            this, 0, intent, 
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.M 
-                ? PendingIntent.FLAG_IMMUTABLE 
-                : 0
-        );
-        
-        // Toggle action
-        Intent toggleIntent = new Intent(this, FloatingOverlayService.class);
-        toggleIntent.setAction(ACTION_TOGGLE_OVERLAY);
-        PendingIntent togglePendingIntent = PendingIntent.getService(
-            this, 1, toggleIntent,
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.M 
-                ? PendingIntent.FLAG_IMMUTABLE 
-                : 0
-        );
-        
-        return new NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Pool Assistant")
-            .setContentText(text)
-            .setSmallIcon(R.drawable.ic_notification) // TODO: Create this icon
-            .setContentIntent(pendingIntent)
-            .addAction(
-                R.drawable.ic_visibility, // TODO: Create this icon
-                isOverlayVisible ? "Hide Overlay" : "Show Overlay",
-                togglePendingIntent
-            )
-            .setOngoing(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setCategory(NotificationCompat.CATEGORY_SERVICE)
-            .build();
-    }
-    
-    /**
-     * Update notification text
-     */
-    private void updateNotification(String text) {
-        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        if (manager != null) {
-            manager.notify(NOTIFICATION_ID, createNotificationWithText(text));
-        }
-    }
-    
-    /**
-     * Get service instance (for external control)
-     */
-    public static FloatingOverlayService getInstance() {
         return instance;
     }
     
-    /**
-     * Check if overlay is currently visible
-     */
-    public boolean isOverlayVisible() {
-        return isOverlayVisible;
+    public OverlayManager(Context context) {
+        this.context = context;
+        this.windowManager = new OverlayWindowManager(context);
+        
+        Logger.d(TAG, "OverlayManager initialized");
     }
     
     /**
-     * Update overlay position (called by OverlayView)
+     * Interface for overlay state changes
      */
-    public void updateOverlayPosition(int x, int y) {
-        if (layoutParams != null && isOverlayVisible) {
-            layoutParams.x = x;
-            layoutParams.y = y;
+    public interface OnOverlayStateChangeListener {
+        void onOverlayStateChanged(boolean isShowing);
+        void onOverlayPermissionRequired();
+        void onOverlayError(String error);
+        void onOverlayServiceConnected();
+    }
+    
+    /**
+     * Set state change listener
+     */
+    public void setOnOverlayStateChangeListener(OnOverlayStateChangeListener listener) {
+        this.stateChangeListener = listener;
+    }
+    
+    /**
+     * Start overlay (public method for MainActivity)
+     */
+    public boolean startOverlay() {
+        return showOverlay(OverlayView.OverlayState.FULL);
+    }
+    
+    /**
+     * Stop overlay (public method for MainActivity)
+     */
+    public void stopOverlay() {
+        hideOverlay();
+    }
+    
+    /**
+     * Toggle overlay (public method for MainActivity)
+     */
+    public void toggleOverlay() {
+        if (isOverlayShowing) {
+            stopOverlay();
+        } else {
+            startOverlay();
+        }
+    }
+    
+    /**
+     * Set overlay service reference
+     */
+    public void setOverlayService(FloatingOverlayService service) {
+        this.overlayService = service;
+        if (overlayView != null) {
+            // Update service reference in view
+            // This will be handled in OverlayView constructor
+        }
+        
+        // Notify listener
+        if (stateChangeListener != null) {
+            stateChangeListener.onOverlayServiceConnected();
+        }
+    }
+    
+    /**
+     * Check if overlay permission is granted
+     */
+    public boolean hasOverlayPermission() {
+        return PermissionHelper.hasOverlayPermission(context);
+    }
+    
+    /**
+     * Request overlay permission
+     */
+    public void requestOverlayPermission() {
+        if (!hasOverlayPermission()) {
+            Logger.d(TAG, "Requesting overlay permission");
+            if (stateChangeListener != null) {
+                stateChangeListener.onOverlayPermissionRequired();
+            }
             
-            try {
-                windowManager.updateViewLayout(overlayView, layoutParams);
-            } catch (Exception e) {
-                Logger.e(TAG, "Failed to update overlay position", e);
+            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(intent);
+        }
+    }
+    
+    /**
+     * Show overlay dengan state tertentu
+     */
+    public boolean showOverlay(OverlayView.OverlayState initialState) {
+        if (!hasOverlayPermission()) {
+            Logger.w(TAG, "Cannot show overlay - permission not granted");
+            requestOverlayPermission();
+            return false;
+        }
+        
+        if (isOverlayShowing) {
+            Logger.d(TAG, "Overlay already showing, updating state to: " + initialState);
+            updateOverlayState(initialState);
+            return true;
+        }
+        
+        try {
+            // Create overlay view
+            overlayView = new OverlayView(overlayService != null ? overlayService : context);
+            
+            // Set initial state
+            overlayView.setState(initialState);
+            lastKnownState = initialState;
+            
+            // Add to window manager
+            WindowManager.LayoutParams params = createLayoutParams(initialState);
+            windowManager.addOverlayView(overlayView, params);
+            
+            isOverlayShowing = true;
+            Logger.d(TAG, "Overlay shown successfully with state: " + initialState);
+            
+            // Notify listener
+            if (stateChangeListener != null) {
+                stateChangeListener.onOverlayStateChanged(true);
+            }
+            
+            return true;
+            
+        } catch (Exception e) {
+            Logger.e(TAG, "Failed to show overlay", e);
+            if (stateChangeListener != null) {
+                stateChangeListener.onOverlayError("Failed to show overlay: " + e.getMessage());
+            }
+            return false;
+        }
+    }
+    
+    /**
+     * Hide overlay completely
+     */
+    public void hideOverlay() {
+        if (!isOverlayShowing || overlayView == null) {
+            Logger.d(TAG, "Overlay not showing, nothing to hide");
+            return;
+        }
+        
+        try {
+            // Save current position
+            saveCurrentPosition();
+            
+            // Remove from window manager
+            windowManager.removeOverlayView(overlayView);
+            
+            // Cleanup
+            overlayView.cleanup();
+            overlayView = null;
+            
+            isOverlayShowing = false;
+            Logger.d(TAG, "Overlay hidden successfully");
+            
+            // Notify listener
+            if (stateChangeListener != null) {
+                stateChangeListener.onOverlayStateChanged(false);
+            }
+            
+        } catch (Exception e) {
+            Logger.e(TAG, "Failed to hide overlay", e);
+            if (stateChangeListener != null) {
+                stateChangeListener.onOverlayError("Failed to hide overlay: " + e.getMessage());
             }
         }
+    }
+    
+    /**
+     * Update overlay state
+     */
+    public void updateOverlayState(OverlayView.OverlayState newState) {
+        if (!isOverlayShowing || overlayView == null) {
+            Logger.w(TAG, "Cannot update state - overlay not showing");
+            return;
+        }
+        
+        try {
+            // Update view state
+            overlayView.setState(newState);
+            lastKnownState = newState;
+            
+            // Update window parameters for new state
+            WindowManager.LayoutParams params = createLayoutParams(newState);
+            updateOverlayPosition(lastX, lastY, params);
+            
+            Logger.d(TAG, "Overlay state updated to: " + newState);
+            
+        } catch (Exception e) {
+            Logger.e(TAG, "Failed to update overlay state", e);
+        }
+    }
+    
+    /**
+     * Update overlay position
+     */
+    public void updateOverlayPosition(int x, int y) {
+        updateOverlayPosition(x, y, null);
+    }
+    
+    /**
+     * Update overlay position dengan custom params
+     */
+    public void updateOverlayPosition(int x, int y, WindowManager.LayoutParams customParams) {
+        if (!isOverlayShowing || overlayView == null) return;
+        
+        try {
+            // Constrain position to screen bounds
+            int[] constrainedPos = constrainToScreenBounds(x, y);
+            lastX = constrainedPos[0];
+            lastY = constrainedPos[1];
+            
+            // Use custom params or create new ones
+            WindowManager.LayoutParams params = customParams != null ? 
+                customParams : createLayoutParams(lastKnownState);
+            
+            params.x = lastX;
+            params.y = lastY;
+            
+            windowManager.updateOverlayView(overlayView, params);
+            
+        } catch (Exception e) {
+            Logger.e(TAG, "Failed to update overlay position", e);
+        }
+    }
+    
+    /**
+     * Reset overlay position to default
+     */
+    public void resetOverlayPosition() {
+        Logger.d(TAG, "Resetting overlay position to default");
+        updateOverlayPosition(defaultX, defaultY);
+    }
+    
+    /**
+     * Create layout parameters for different states
+     */
+    private WindowManager.LayoutParams createLayoutParams(OverlayView.OverlayState state) {
+        WindowManager.LayoutParams params = windowManager.createOverlayLayoutParams();
+        
+        // Adjust size based on state
+        switch (state) {
+            case FULL:
+                params.width = WindowManager.LayoutParams.WRAP_CONTENT; // 320dp from XML
+                params.height = WindowManager.LayoutParams.WRAP_CONTENT;
+                break;
+                
+            case ICON:
+                params.width = dpToPx(64); // 64dp circle
+                params.height = dpToPx(64);
+                break;
+                
+            case SETTINGS:
+                params.width = WindowManager.LayoutParams.WRAP_CONTENT; // 280dp from XML
+                params.height = WindowManager.LayoutParams.WRAP_CONTENT;
+                break;
+        }
+        
+        // Position
+        params.x = lastX;
+        params.y = lastY;
+        
+        return params;
+    }
+    
+    /**
+     * Constrain position to screen bounds
+     */
+    private int[] constrainToScreenBounds(int x, int y) {
+        // Get screen dimensions
+        int[] screenSize = windowManager.getScreenSize();
+        int screenWidth = screenSize[0];
+        int screenHeight = screenSize[1];
+        
+        // Get overlay dimensions based on state
+        int overlayWidth = getOverlayWidth();
+        int overlayHeight = getOverlayHeight();
+        
+        // Constrain X
+        int constrainedX = Math.max(0, Math.min(x, screenWidth - overlayWidth));
+        
+        // Constrain Y (account for status bar)
+        int statusBarHeight = windowManager.getStatusBarHeight();
+        int constrainedY = Math.max(statusBarHeight, Math.min(y, screenHeight - overlayHeight));
+        
+        return new int[]{constrainedX, constrainedY};
+    }
+    
+    /**
+     * Get overlay width based on current state
+     */
+    private int getOverlayWidth() {
+        switch (lastKnownState) {
+            case FULL:
+                return dpToPx(320);
+            case ICON:
+                return dpToPx(64);
+            case SETTINGS:
+                return dpToPx(280);
+            default:
+                return dpToPx(320);
+        }
+    }
+    
+    /**
+     * Get overlay height (estimated)
+     */
+    private int getOverlayHeight() {
+        switch (lastKnownState) {
+            case FULL:
+                return dpToPx(400); // Estimated
+            case ICON:
+                return dpToPx(64);
+            case SETTINGS:
+                return dpToPx(300); // Estimated
+            default:
+                return dpToPx(400);
+        }
+    }
+    
+    /**
+     * Convert dp to pixels
+     */
+    private int dpToPx(int dp) {
+        float density = context.getResources().getDisplayMetrics().density;
+        return (int) (dp * density + 0.5f);
+    }
+    
+    /**
+     * Save current overlay position
+     */
+    private void saveCurrentPosition() {
+        // TODO: Save to SharedPreferences for persistence
+        Logger.d(TAG, "Saving overlay position: " + lastX + ", " + lastY);
+    }
+    
+    /**
+     * Load saved overlay position
+     */
+    private void loadSavedPosition() {
+        // TODO: Load from SharedPreferences
+        // For now, use defaults
+        lastX = defaultX;
+        lastY = defaultY;
+    }
+    
+    /**
+     * Get overlay status
+     */
+    public boolean isOverlayShowing() {
+        return isOverlayShowing;
+    }
+    
+    /**
+     * Get current overlay state
+     */
+    public OverlayView.OverlayState getCurrentState() {
+        return lastKnownState;
+    }
+    
+    /**
+     * Get overlay view instance
+     */
+    public OverlayView getOverlayView() {
+        return overlayView;
+    }
+    
+    /**
+     * Handle overlay service destruction
+     */
+    public void onServiceDestroy() {
+        Logger.d(TAG, "Service destroying, cleaning up overlay");
+        hideOverlay();
+        overlayService = null;
+    }
+    
+    /**
+     * Handle configuration changes (screen rotation, etc.)
+     */
+    public void onConfigurationChanged() {
+        if (isOverlayShowing && overlayView != null) {
+            Logger.d(TAG, "Configuration changed, updating overlay");
+            
+            // Reposition overlay to ensure it's still on screen
+            int[] constrainedPos = constrainToScreenBounds(lastX, lastY);
+            updateOverlayPosition(constrainedPos[0], constrainedPos[1]);
+        }
+    }
+    
+    /**
+     * Get feature states dari overlay
+     */
+    public boolean isBasicAimEnabled() {
+        return overlayView != null ? overlayView.isBasicAimEnabled() : false;
+    }
+    
+    public boolean isRootAimEnabled() {
+        return overlayView != null ? overlayView.isRootAimEnabled() : false;
+    }
+    
+    public boolean isPredictionEnabled() {
+        return overlayView != null ? overlayView.isPredictionEnabled() : false;
+    }
+    
+    public int getOpacityValue() {
+        return overlayView != null ? overlayView.getOpacityValue() : 80;
+    }
+    
+    public int getLineThicknessValue() {
+        return overlayView != null ? overlayView.getLineThicknessValue() : 5;
+    }
+    
+    /**
+     * Cleanup all resources
+     */
+    public void cleanup() {
+        Logger.d(TAG, "Cleaning up OverlayManager");
+        
+        hideOverlay();
+        
+        if (windowManager != null) {
+            windowManager.cleanup();
+            windowManager = null;
+        }
+        
+        overlayService = null;
+        stateChangeListener = null;
+        context = null;
+        instance = null;
     }
 }
