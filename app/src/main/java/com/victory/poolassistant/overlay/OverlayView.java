@@ -24,33 +24,35 @@ import com.victory.poolassistant.R;
 import com.victory.poolassistant.core.Logger;
 
 /**
- * Fixed 3-State Overlay System untuk Pool Assistant
- * States: ICON → FULL → SETTINGS
- * FIXED: Icon size & appearance improved + DRAGGABLE FUNCTIONALITY + SNAP TO EDGE
+ * Enhanced OverlayView dengan 3-State System + Draggable Icon
+ * FIXED: Icon 72dp yang bisa drag + overlay always visible
+ * States: ICON (draggable) → FULL → SETTINGS
  */
 public class OverlayView extends LinearLayout {
     
     private static final String TAG = "OverlayView";
     
-    // 3 States
+    // 3-State System Enhanced
     public enum OverlayState {
-        ICON,       // Floating icon (48dp - FIXED size)
-        FULL,       // Full overlay (320dp) 
-        SETTINGS    // Settings menu (280dp)
+        ICON,       // 72dp draggable icon - clean tanpa biru/hijau
+        FULL,       // 320dp full overlay dengan toggles + sliders
+        SETTINGS    // 280dp settings menu
     }
     
-    // Touch handling
+    // Enhanced touch handling
     private float initialX, initialY;
     private float initialTouchX, initialTouchY;
     private boolean isDragging = false;
-    private static final int CLICK_THRESHOLD = 10;
+    private boolean isClickPending = false;
+    private static final int CLICK_THRESHOLD = 15; // Increased for better detection
+    private static final long CLICK_TIMEOUT = 200; // ms
     
     // State containers
     private ViewGroup iconContainer;
     private ViewGroup fullContainer;
     private ViewGroup settingsContainer;
     
-    // Icon state components
+    // Icon state components (draggable)
     private ImageButton iconButton;
     
     // Full state components
@@ -62,9 +64,9 @@ public class OverlayView extends LinearLayout {
     private Switch switchPrediksi;
     private SeekBar seekBarOpacity;
     private SeekBar seekBarKetebalan;
+    private TextView tvStatus;
     
     // Settings state components
-    private ImageButton btnCloseSettings;
     private ImageButton btnPlus;
     private Switch switchTheme;
     private Button btnReset;
@@ -74,12 +76,22 @@ public class OverlayView extends LinearLayout {
     private OverlayState currentState = OverlayState.ICON;
     private boolean isInitialized = false;
     
+    // COMPATIBILITY: Backward compatibility properties
+    private boolean isMinimized = false;
+    private ViewGroup mainContainer;
+    private ViewGroup minimizedContainer;
+    private ImageButton btnMinimize;
+    private ImageButton btnExpand;
+    private ImageButton btnSettings_compat;
+    
     // Service reference
     private FloatingOverlayService service;
     
     public OverlayView(Context context) {
         super(context);
-        this.service = (FloatingOverlayService) context;
+        if (context instanceof FloatingOverlayService) {
+            this.service = (FloatingOverlayService) context;
+        }
         initView();
     }
     
@@ -89,107 +101,126 @@ public class OverlayView extends LinearLayout {
     }
     
     /**
-     * Initialize 3-state overlay view
+     * ENHANCED: Initialize 3-state overlay dengan draggable icon
      */
     private void initView() {
         try {
-            Logger.d(TAG, "🚀 Starting initView()...");
-            
-            // Create containers
-            iconContainer = createIconState();
+            // Create all 3 state containers
+            iconContainer = createDraggableIconState(); // ENHANCED: Draggable
             fullContainer = createFullState();
             settingsContainer = createSettingsState();
             
-            Logger.d(TAG, "📦 Containers created");
-            
-            // Add all containers
+            // Add containers
             addView(iconContainer);
             addView(fullContainer);
             addView(settingsContainer);
             
-            Logger.d(TAG, "📦 Containers added to view");
-            
-            // Setup interactions
-            setupClickListeners();
-            Logger.d(TAG, "🖱️ Click listeners setup");
-            
-            setupTouchHandling();
-            Logger.d(TAG, "👆 Touch handling setup");
+            // Setup enhanced interactions
+            setupEnhancedClickListeners();
+            setupEnhancedTouchHandling(); // ENHANCED: Better touch handling
             
             // Set initial state
             setState(OverlayState.ICON);
-            Logger.d(TAG, "🎯 Initial state set to ICON");
+            
+            // Setup backward compatibility
+            setupBackwardCompatibility();
             
             isInitialized = true;
-            Logger.d(TAG, "✅ OverlayView initialized successfully");
+            Logger.d(TAG, "Enhanced 3-State OverlayView initialized successfully");
             
         } catch (Exception e) {
-            Logger.e(TAG, "❌ Failed to initialize OverlayView", e);
+            Logger.e(TAG, "Failed to initialize enhanced OverlayView", e);
         }
     }
     
     /**
-     * Create Icon State (48dp floating icon - FIXED appearance)
+     * ENHANCED: Create draggable 72dp icon state
      */
-    private ViewGroup createIconState() {
+    private ViewGroup createDraggableIconState() {
         LinearLayout container = new LinearLayout(getContext());
-        container.setLayoutParams(new LayoutParams(
-            (int) (72 * getResources().getDisplayMetrics().density), 
-            (int) (72 * getResources().getDisplayMetrics().density)
-        ));
+        
+        // ENHANCED: 72dp size as requested
+        int iconSize = (int) (72 * getResources().getDisplayMetrics().density);
+        container.setLayoutParams(new LayoutParams(iconSize, iconSize));
         container.setOrientation(LinearLayout.VERTICAL);
         container.setGravity(android.view.Gravity.CENTER);
-        container.setElevation(8f);
         
-        // Pool assistant icon - using clean app icon
+        // ENHANCED: Clean appearance - no blue background
+        container.setBackgroundResource(android.R.drawable.btn_default); // Subtle system background
+        container.setElevation(12f); // Higher elevation untuk always-on-top
+        
+        // ENHANCED: App icon button - draggable
         iconButton = new ImageButton(getContext());
-        LayoutParams iconParams = new LayoutParams(
-            (int) (64 * getResources().getDisplayMetrics().density), 
-            (int) (64 * getResources().getDisplayMetrics().density)
-        );
+        int buttonSize = (int) (64 * getResources().getDisplayMetrics().density);
+        LayoutParams iconParams = new LayoutParams(buttonSize, buttonSize);
         iconButton.setLayoutParams(iconParams);
         
-        // FIXED: Clean appearance - no blue background
-        iconButton.setBackground(null); // Transparent background
-        iconButton.setImageResource(R.drawable.ic_pool_assistant_icon);
-        iconButton.setScaleType(ImageButton.ScaleType.CENTER_INSIDE);
-        
-        // Add subtle shadow/border for better visibility
+        // ENHANCED: Clean transparent background
+        iconButton.setBackground(null);
         iconButton.setElevation(4f);
         
+        // Use app icon with fallback
+        try {
+            iconButton.setImageResource(R.drawable.ic_pool_assistant_icon);
+        } catch (Exception e) {
+            // Fallback to launcher icon if available
+            try {
+                iconButton.setImageResource(R.mipmap.ic_launcher);
+            } catch (Exception e2) {
+                // Ultimate fallback to system icon
+                iconButton.setImageResource(android.R.drawable.ic_dialog_info);
+                Logger.w(TAG, "Using fallback icon - add ic_pool_assistant_icon.png to drawable/");
+            }
+        }
+        
+        iconButton.setScaleType(ImageButton.ScaleType.CENTER_INSIDE);
         container.addView(iconButton);
+        
+        // ENHANCED: Make container itself draggable
+        container.setClickable(true);
+        container.setFocusable(true);
         
         return container;
     }
     
     /**
-     * Create Full State (320dp full overlay)
+     * Create Full State (320dp)
      */
     private ViewGroup createFullState() {
         LinearLayout container = new LinearLayout(getContext());
-        container.setLayoutParams(new LayoutParams(
-            (int) (320 * getResources().getDisplayMetrics().density),
-            LayoutParams.WRAP_CONTENT
-        ));
+        int fullWidth = (int) (320 * getResources().getDisplayMetrics().density);
+        container.setLayoutParams(new LayoutParams(fullWidth, LayoutParams.WRAP_CONTENT));
         container.setOrientation(LinearLayout.VERTICAL);
-        container.setBackgroundResource(R.drawable.overlay_full_background);
-        container.setElevation(8f);
-        container.setPadding(
-            (int) (16 * getResources().getDisplayMetrics().density),
-            (int) (16 * getResources().getDisplayMetrics().density),
-            (int) (16 * getResources().getDisplayMetrics().density),
-            (int) (16 * getResources().getDisplayMetrics().density)
-        );
         
-        // Header with blue gradient
+        // Background with fallback
+        try {
+            container.setBackgroundResource(R.drawable.overlay_full_background);
+        } catch (Exception e) {
+            container.setBackgroundColor(Color.parseColor("#2A2A2A"));
+        }
+        
+        container.setElevation(8f);
+        container.setPadding(16, 16, 16, 16);
+        
+        // Header
         LinearLayout header = createFullHeader();
         container.addView(header);
         
-        // Toggle switches
+        // Status
+        tvStatus = new TextView(getContext());
+        tvStatus.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        tvStatus.setText("Pool Assistant Ready");
+        tvStatus.setTextColor(Color.WHITE);
+        tvStatus.setTextSize(14f);
+        tvStatus.setGravity(android.view.Gravity.CENTER);
+        tvStatus.setPadding(0, 16, 0, 16);
+        container.addView(tvStatus);
+        
+        // Toggles section
         LinearLayout toggleSection = createToggleSection();
         container.addView(toggleSection);
         
-        // Sliders
+        // Sliders section
         LinearLayout sliderSection = createSliderSection();
         container.addView(sliderSection);
         
@@ -204,33 +235,34 @@ public class OverlayView extends LinearLayout {
         header.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         header.setOrientation(LinearLayout.HORIZONTAL);
         header.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        header.setBackgroundResource(R.drawable.overlay_header_gradient);
-        header.setPadding(
-            (int) (12 * getResources().getDisplayMetrics().density),
-            (int) (12 * getResources().getDisplayMetrics().density),
-            (int) (12 * getResources().getDisplayMetrics().density),
-            (int) (12 * getResources().getDisplayMetrics().density)
-        );
         
-        // Settings button (⚙️)
+        // Header background
+        try {
+            header.setBackgroundResource(R.drawable.overlay_header_gradient);
+        } catch (Exception e) {
+            header.setBackgroundColor(Color.parseColor("#1976D2"));
+        }
+        header.setPadding(12, 12, 12, 12);
+        
+        // Settings button
         btnSettings = new ImageButton(getContext());
-        LayoutParams settingsParams = new LayoutParams(
-            (int) (32 * getResources().getDisplayMetrics().density),
-            (int) (32 * getResources().getDisplayMetrics().density)
-        );
+        LayoutParams settingsParams = new LayoutParams(32, 32);
         btnSettings.setLayoutParams(settingsParams);
-        btnSettings.setBackgroundResource(R.drawable.overlay_button_background);
-        btnSettings.setImageResource(R.drawable.ic_settings);
+        
+        try {
+            btnSettings.setBackgroundResource(R.drawable.overlay_button_background);
+            btnSettings.setImageResource(R.drawable.ic_settings);
+        } catch (Exception e) {
+            btnSettings.setBackgroundResource(android.R.drawable.btn_default);
+            btnSettings.setImageResource(android.R.drawable.ic_menu_preferences);
+        }
         btnSettings.setScaleType(ImageButton.ScaleType.CENTER_INSIDE);
         header.addView(btnSettings);
         
-        // Pool Assistant title with 8-ball icon
+        // Title
         tvPoolAssistant = new TextView(getContext());
         LayoutParams titleParams = new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f);
-        titleParams.setMargins(
-            (int) (12 * getResources().getDisplayMetrics().density), 0, 
-            (int) (12 * getResources().getDisplayMetrics().density), 0
-        );
+        titleParams.setMargins(12, 0, 12, 0);
         tvPoolAssistant.setLayoutParams(titleParams);
         tvPoolAssistant.setText("🎱 Pool Assistant");
         tvPoolAssistant.setTextColor(Color.WHITE);
@@ -238,15 +270,18 @@ public class OverlayView extends LinearLayout {
         tvPoolAssistant.setGravity(android.view.Gravity.CENTER);
         header.addView(tvPoolAssistant);
         
-        // Close button (❌)
+        // Close button
         btnClose = new ImageButton(getContext());
-        LayoutParams closeParams = new LayoutParams(
-            (int) (32 * getResources().getDisplayMetrics().density),
-            (int) (32 * getResources().getDisplayMetrics().density)
-        );
+        LayoutParams closeParams = new LayoutParams(32, 32);
         btnClose.setLayoutParams(closeParams);
-        btnClose.setBackgroundResource(R.drawable.overlay_button_background);
-        btnClose.setImageResource(R.drawable.ic_close);
+        
+        try {
+            btnClose.setBackgroundResource(R.drawable.overlay_button_background);
+            btnClose.setImageResource(R.drawable.ic_close);
+        } catch (Exception e) {
+            btnClose.setBackgroundResource(android.R.drawable.btn_default);
+            btnClose.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
+        }
         btnClose.setScaleType(ImageButton.ScaleType.CENTER_INSIDE);
         header.addView(btnClose);
         
@@ -260,22 +295,17 @@ public class OverlayView extends LinearLayout {
         LinearLayout section = new LinearLayout(getContext());
         section.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         section.setOrientation(LinearLayout.VERTICAL);
-        section.setPadding(0, 
-            (int) (16 * getResources().getDisplayMetrics().density), 0, 
-            (int) (16 * getResources().getDisplayMetrics().density)
-        );
+        section.setPadding(0, 16, 0, 16);
         
-        // Fitur Aim toggle - Get switch from container
+        // Create toggles and extract switches
         LinearLayout aimLayout = createToggleSwitch("Fitur Aim", true);
         switchFiturAim = (Switch) aimLayout.getChildAt(1);
         section.addView(aimLayout);
         
-        // Aim Root Mode toggle - Get switch from container
         LinearLayout rootLayout = createToggleSwitch("Aim Root Mode", false);
         switchAimRootMode = (Switch) rootLayout.getChildAt(1);
         section.addView(rootLayout);
         
-        // Prediksi Bola toggle - Get switch from container
         LinearLayout prediksiLayout = createToggleSwitch("Prediksi Bola", true);
         switchPrediksi = (Switch) prediksiLayout.getChildAt(1);
         section.addView(prediksiLayout);
@@ -287,31 +317,26 @@ public class OverlayView extends LinearLayout {
      * Create individual toggle switch
      */
     private LinearLayout createToggleSwitch(String label, boolean defaultValue) {
-        LinearLayout toggleLayout = new LinearLayout(getContext());
-        toggleLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-        toggleLayout.setOrientation(LinearLayout.HORIZONTAL);
-        toggleLayout.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        toggleLayout.setPadding(0, 
-            (int) (8 * getResources().getDisplayMetrics().density), 0, 
-            (int) (8 * getResources().getDisplayMetrics().density)
-        );
+        LinearLayout layout = new LinearLayout(getContext());
+        layout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        layout.setOrientation(LinearLayout.HORIZONTAL);
+        layout.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        layout.setPadding(0, 8, 0, 8);
         
-        // Label
         TextView labelView = new TextView(getContext());
         LayoutParams labelParams = new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f);
         labelView.setLayoutParams(labelParams);
         labelView.setText(label);
         labelView.setTextColor(Color.WHITE);
         labelView.setTextSize(14f);
-        toggleLayout.addView(labelView);
+        layout.addView(labelView);
         
-        // Switch
         Switch switchView = new Switch(getContext());
         switchView.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
         switchView.setChecked(defaultValue);
-        toggleLayout.addView(switchView);
+        layout.addView(switchView);
         
-        return toggleLayout;
+        return layout;
     }
     
     /**
@@ -322,12 +347,12 @@ public class OverlayView extends LinearLayout {
         section.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         section.setOrientation(LinearLayout.VERTICAL);
         
-        // Opacity slider - Get SeekBar from container
+        // Opacity slider
         LinearLayout opacityLayout = createSlider("opacity", 80);
         seekBarOpacity = (SeekBar) opacityLayout.getChildAt(1);
         section.addView(opacityLayout);
         
-        // Ketebalan garis slider - Get SeekBar from container
+        // Thickness slider
         LinearLayout ketebalanLayout = createSlider("ketebalan garis", 60);
         seekBarKetebalan = (SeekBar) ketebalanLayout.getChildAt(1);
         section.addView(ketebalanLayout);
@@ -339,51 +364,52 @@ public class OverlayView extends LinearLayout {
      * Create individual slider
      */
     private LinearLayout createSlider(String label, int defaultValue) {
-        LinearLayout sliderLayout = new LinearLayout(getContext());
-        sliderLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-        sliderLayout.setOrientation(LinearLayout.VERTICAL);
-        sliderLayout.setPadding(0, 
-            (int) (8 * getResources().getDisplayMetrics().density), 0, 
-            (int) (8 * getResources().getDisplayMetrics().density)
-        );
+        LinearLayout layout = new LinearLayout(getContext());
+        layout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(0, 8, 0, 8);
         
-        // Label background
+        // Label
         TextView labelView = new TextView(getContext());
-        labelView.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, 
-            (int) (40 * getResources().getDisplayMetrics().density)
-        ));
+        labelView.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, 40));
         labelView.setText(label);
         labelView.setTextColor(Color.WHITE);
         labelView.setTextSize(14f);
         labelView.setGravity(android.view.Gravity.CENTER);
-        labelView.setBackgroundResource(R.drawable.overlay_slider_label_background);
-        sliderLayout.addView(labelView);
+        
+        try {
+            labelView.setBackgroundResource(R.drawable.overlay_slider_label_background);
+        } catch (Exception e) {
+            labelView.setBackgroundColor(Color.parseColor("#42A5F5"));
+        }
+        layout.addView(labelView);
         
         // SeekBar
         SeekBar seekBar = new SeekBar(getContext());
         LayoutParams seekParams = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
-        seekParams.setMargins(0, 
-            (int) (8 * getResources().getDisplayMetrics().density), 0, 0
-        );
+        seekParams.setMargins(0, 8, 0, 0);
         seekBar.setLayoutParams(seekParams);
         seekBar.setMax(100);
         seekBar.setProgress(defaultValue);
-        sliderLayout.addView(seekBar);
+        layout.addView(seekBar);
         
-        return sliderLayout;
+        return layout;
     }
     
     /**
-     * Create Settings State (280dp settings menu)
+     * Create Settings State (280dp)
      */
     private ViewGroup createSettingsState() {
         LinearLayout container = new LinearLayout(getContext());
-        container.setLayoutParams(new LayoutParams(
-            (int) (280 * getResources().getDisplayMetrics().density),
-            LayoutParams.WRAP_CONTENT
-        ));
+        int settingsWidth = (int) (280 * getResources().getDisplayMetrics().density);
+        container.setLayoutParams(new LayoutParams(settingsWidth, LayoutParams.WRAP_CONTENT));
         container.setOrientation(LinearLayout.VERTICAL);
-        container.setBackgroundResource(R.drawable.overlay_settings_background);
+        
+        try {
+            container.setBackgroundResource(R.drawable.overlay_settings_background);
+        } catch (Exception e) {
+            container.setBackgroundColor(Color.parseColor("#2A2A2A"));
+        }
         container.setElevation(8f);
         
         // Settings header
@@ -405,15 +431,15 @@ public class OverlayView extends LinearLayout {
         header.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         header.setOrientation(LinearLayout.HORIZONTAL);
         header.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        header.setBackgroundResource(R.drawable.overlay_settings_header_background);
-        header.setPadding(
-            (int) (16 * getResources().getDisplayMetrics().density),
-            (int) (12 * getResources().getDisplayMetrics().density),
-            (int) (16 * getResources().getDisplayMetrics().density),
-            (int) (12 * getResources().getDisplayMetrics().density)
-        );
         
-        // Settings title
+        try {
+            header.setBackgroundResource(R.drawable.overlay_settings_header_background);
+        } catch (Exception e) {
+            header.setBackgroundColor(Color.parseColor("#FF9800"));
+        }
+        header.setPadding(16, 12, 16, 12);
+        
+        // Title
         TextView settingsTitle = new TextView(getContext());
         LayoutParams titleParams = new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f);
         settingsTitle.setLayoutParams(titleParams);
@@ -423,16 +449,19 @@ public class OverlayView extends LinearLayout {
         settingsTitle.setTypeface(settingsTitle.getTypeface(), Typeface.BOLD);
         header.addView(settingsTitle);
         
-        // Plus button
+        // Plus button (back to full)
         btnPlus = new ImageButton(getContext());
-        LayoutParams plusParams = new LayoutParams(
-            (int) (32 * getResources().getDisplayMetrics().density),
-            (int) (32 * getResources().getDisplayMetrics().density)
-        );
-        plusParams.setMargins((int) (8 * getResources().getDisplayMetrics().density), 0, 0, 0);
+        LayoutParams plusParams = new LayoutParams(32, 32);
+        plusParams.setMargins(8, 0, 0, 0);
         btnPlus.setLayoutParams(plusParams);
-        btnPlus.setBackgroundResource(R.drawable.overlay_button_background);
-        btnPlus.setImageResource(R.drawable.ic_add);
+        
+        try {
+            btnPlus.setBackgroundResource(R.drawable.overlay_button_background);
+            btnPlus.setImageResource(R.drawable.ic_add);
+        } catch (Exception e) {
+            btnPlus.setBackgroundResource(android.R.drawable.btn_default);
+            btnPlus.setImageResource(android.R.drawable.ic_input_add);
+        }
         btnPlus.setScaleType(ImageButton.ScaleType.CENTER_INSIDE);
         header.addView(btnPlus);
         
@@ -446,43 +475,33 @@ public class OverlayView extends LinearLayout {
         LinearLayout options = new LinearLayout(getContext());
         options.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         options.setOrientation(LinearLayout.VERTICAL);
-        options.setPadding(
-            (int) (16 * getResources().getDisplayMetrics().density),
-            (int) (16 * getResources().getDisplayMetrics().density),
-            (int) (16 * getResources().getDisplayMetrics().density),
-            (int) (16 * getResources().getDisplayMetrics().density)
-        );
+        options.setPadding(16, 16, 16, 16);
         
         // Theme toggle
-        LinearLayout themeOption = createSettingsOption("🌙 Terang", false);
+        LinearLayout themeOption = createSettingsOption("🌙 Tema Gelap", false);
         switchTheme = (Switch) ((LinearLayout) themeOption.getChildAt(1)).getChildAt(0);
         options.addView(themeOption);
         
         // Reset position
-        LinearLayout resetOption = createSettingsButton("↻ Reset Posisi");
-        btnReset = (Button) resetOption.getChildAt(0);
-        options.addView(resetOption);
+        btnReset = createSettingsButton("↻ Reset Posisi", false);
+        options.addView(btnReset);
         
         // Exit app
-        LinearLayout exitOption = createSettingsButton("🚪 Keluar Aplikasi", true);
-        btnExit = (Button) exitOption.getChildAt(0);
-        options.addView(exitOption);
+        btnExit = createSettingsButton("🚪 Keluar Aplikasi", true);
+        options.addView(btnExit);
         
         return options;
     }
     
     /**
-     * Create settings option with toggle
+     * Create settings option dengan toggle
      */
     private LinearLayout createSettingsOption(String label, boolean defaultValue) {
-        LinearLayout optionLayout = new LinearLayout(getContext());
-        optionLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-        optionLayout.setOrientation(LinearLayout.HORIZONTAL);
-        optionLayout.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        optionLayout.setPadding(0, 
-            (int) (12 * getResources().getDisplayMetrics().density), 0, 
-            (int) (12 * getResources().getDisplayMetrics().density)
-        );
+        LinearLayout layout = new LinearLayout(getContext());
+        layout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        layout.setOrientation(LinearLayout.HORIZONTAL);
+        layout.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        layout.setPadding(0, 12, 0, 12);
         
         TextView labelView = new TextView(getContext());
         LayoutParams labelParams = new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f);
@@ -490,664 +509,418 @@ public class OverlayView extends LinearLayout {
         labelView.setText(label);
         labelView.setTextColor(Color.WHITE);
         labelView.setTextSize(14f);
-        optionLayout.addView(labelView);
+        layout.addView(labelView);
         
         LinearLayout switchContainer = new LinearLayout(getContext());
         switchContainer.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
         Switch switchView = new Switch(getContext());
         switchView.setChecked(defaultValue);
         switchContainer.addView(switchView);
-        optionLayout.addView(switchContainer);
+        layout.addView(switchContainer);
         
-        return optionLayout;
+        return layout;
     }
     
     /**
-     * Create settings button option
+     * Create settings button
      */
-    private LinearLayout createSettingsButton(String label) {
-        return createSettingsButton(label, false);
-    }
-    
-    /**
-     * Create settings button option - COMPLETED METHOD
-     */
-    private LinearLayout createSettingsButton(String label, boolean isDanger) {
-        LinearLayout buttonLayout = new LinearLayout(getContext());
-        buttonLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-        buttonLayout.setOrientation(LinearLayout.HORIZONTAL);
-        buttonLayout.setPadding(0, 
-            (int) (8 * getResources().getDisplayMetrics().density), 0, 
-            (int) (8 * getResources().getDisplayMetrics().density)
-        );
-        
+    private Button createSettingsButton(String label, boolean isRed) {
         Button button = new Button(getContext());
-        button.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, 
-            (int) (40 * getResources().getDisplayMetrics().density)
-        ));
+        LayoutParams buttonParams = new LayoutParams(LayoutParams.MATCH_PARENT, 48);
+        buttonParams.setMargins(0, 12, 0, 12);
+        button.setLayoutParams(buttonParams);
         button.setText(label);
-        button.setTextColor(isDanger ? Color.RED : Color.WHITE);
+        button.setTextColor(isRed ? Color.parseColor("#FF5252") : Color.WHITE);
         button.setTextSize(14f);
-        button.setBackgroundResource(isDanger ? R.drawable.overlay_danger_button : R.drawable.overlay_settings_button);
-        buttonLayout.addView(button);
         
-        return buttonLayout;
+        try {
+            button.setBackgroundResource(isRed ? 
+                R.drawable.overlay_settings_button_red_background : 
+                R.drawable.overlay_settings_button_background
+            );
+        } catch (Exception e) {
+            button.setBackgroundResource(android.R.drawable.btn_default);
+            if (isRed) {
+                button.setBackgroundColor(Color.parseColor("#FF5252"));
+            }
+        }
+        
+        return button;
     }
-
+    
     /**
-     * Setup click listeners for all interactive elements
+     * ENHANCED: Setup click listeners dengan proper state transitions
      */
-    private void setupClickListeners() {
-        Logger.d(TAG, "🖱️ Setting up click listeners...");
-        
-        // Icon state - click to expand
+    private void setupEnhancedClickListeners() {
+        // Icon state - Click to expand to Full (only when not dragging)
         if (iconButton != null) {
             iconButton.setOnClickListener(v -> {
-                Logger.d(TAG, "🖱️ Icon clicked - isDragging: " + isDragging);
                 if (!isDragging) {
+                    Logger.d(TAG, "Icon clicked - expanding to Full state");
                     setState(OverlayState.FULL);
-                    animateStateTransition();
                 }
             });
-            Logger.d(TAG, "✅ Icon click listener set");
         }
         
-        // Full state buttons
+        // Also make container clickable for larger touch area
+        if (iconContainer != null) {
+            iconContainer.setOnClickListener(v -> {
+                if (!isDragging) {
+                    Logger.d(TAG, "Icon container clicked - expanding to Full state");
+                    setState(OverlayState.FULL);
+                }
+            });
+        }
+        
+        // Full state - Settings button
         if (btnSettings != null) {
             btnSettings.setOnClickListener(v -> {
-                Logger.d(TAG, "🖱️ Settings button clicked");
+                Logger.d(TAG, "Settings button clicked - switching to Settings state");
                 setState(OverlayState.SETTINGS);
-                animateStateTransition();
             });
         }
         
+        // Full state - Close button
         if (btnClose != null) {
             btnClose.setOnClickListener(v -> {
-                Logger.d(TAG, "🖱️ Close button clicked");
+                Logger.d(TAG, "Close button clicked - minimizing to Icon state");
                 setState(OverlayState.ICON);
-                animateStateTransition();
             });
         }
         
-        // Settings state buttons
+        // Settings state - Plus button (back to Full)
         if (btnPlus != null) {
             btnPlus.setOnClickListener(v -> {
-                Logger.d(TAG, "🖱️ Plus button clicked");
-                setState(OverlayState.ICON);
-                animateStateTransition();
+                Logger.d(TAG, "Plus button clicked - back to Full state");
+                setState(OverlayState.FULL);
             });
         }
         
+        // Settings state - Reset position
         if (btnReset != null) {
             btnReset.setOnClickListener(v -> {
-                Logger.d(TAG, "🖱️ Reset button clicked");
+                Logger.d(TAG, "Reset position clicked");
                 resetOverlayPosition();
             });
         }
         
+        // Settings state - Exit app
         if (btnExit != null) {
             btnExit.setOnClickListener(v -> {
-                Logger.d(TAG, "🖱️ Exit button clicked");
-                exitApplication();
-            });
-        }
-        
-        // Setup SeekBar listeners for real-time feedback
-        if (seekBarOpacity != null) {
-            seekBarOpacity.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-                @Override
-                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                    if (fromUser) {
-                        Logger.d(TAG, "Opacity changed to: " + progress + "%");
-                    }
+                Logger.d(TAG, "Exit app clicked");
+                if (service != null) {
+                    service.hideOverlay();
+                    service.stopSelf();
                 }
-                
-                @Override
-                public void onStartTrackingTouch(SeekBar seekBar) {}
-                
-                @Override
-                public void onStopTrackingTouch(SeekBar seekBar) {}
-            });
-        }
-        
-        if (seekBarKetebalan != null) {
-            seekBarKetebalan.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-                @Override
-                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                    if (fromUser) {
-                        Logger.d(TAG, "Line thickness changed to: " + progress + "%");
-                    }
-                }
-                
-                @Override
-                public void onStartTrackingTouch(SeekBar seekBar) {}
-                
-                @Override
-                public void onStopTrackingTouch(SeekBar seekBar) {}
-            });
-        }
-        
-        // Setup Switch listeners
-        if (switchFiturAim != null) {
-            switchFiturAim.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                Logger.d(TAG, "Fitur Aim " + (isChecked ? "enabled" : "disabled"));
-            });
-        }
-        
-        if (switchAimRootMode != null) {
-            switchAimRootMode.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                Logger.d(TAG, "Aim Root Mode " + (isChecked ? "enabled" : "disabled"));
-            });
-        }
-        
-        if (switchPrediksi != null) {
-            switchPrediksi.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                Logger.d(TAG, "Prediksi Bola " + (isChecked ? "enabled" : "disabled"));
-            });
-        }
-        
-        if (switchTheme != null) {
-            switchTheme.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                Logger.d(TAG, "Theme changed to: " + (isChecked ? "Light" : "Dark"));
             });
         }
     }
-
+    
     /**
-     * Setup touch handling for drag functionality - FIXED IMPLEMENTATION
+     * ENHANCED: Touch handling dengan better drag detection untuk icon
      */
-    private void setupTouchHandling() {
-        Logger.d(TAG, "=== SETTING UP TOUCH HANDLING ===");
-        Logger.d(TAG, "Current state: " + currentState);
-        Logger.d(TAG, "Service: " + (service != null ? "Connected" : "NULL"));
-        
-        // Set touch listener on the entire view
-        setOnTouchListener(new OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                Logger.d(TAG, "🔥 TOUCH EVENT RECEIVED! Action: " + event.getAction() + ", State: " + currentState);
-                
-                // Only handle touch on ICON state for dragging
-                if (currentState != OverlayState.ICON) {
-                    Logger.d(TAG, "❌ Touch ignored - Current state is: " + currentState + " (not ICON)");
-                    return false;
-                }
-                
-                Logger.d(TAG, "✅ Processing touch in ICON state");
-                
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        Logger.d(TAG, "👆 ACTION_DOWN detected");
-                        return handleTouchDown(event);
-                        
-                    case MotionEvent.ACTION_MOVE:
-                        return handleTouchMove(event);
-                        
-                    case MotionEvent.ACTION_UP:
-                    case MotionEvent.ACTION_CANCEL:
-                        Logger.d(TAG, "👆 ACTION_UP/CANCEL detected");
-                        return handleTouchUp(event);
-                }
-                
-                Logger.d(TAG, "❓ Unhandled touch action: " + event.getAction());
-                return false;
+    private void setupEnhancedTouchHandling() {
+        setOnTouchListener((v, event) -> {
+            // Only handle touch in ICON state for dragging
+            if (currentState == OverlayState.ICON) {
+                return handleIconDragTouch(event);
+            } else {
+                // For FULL/SETTINGS states, allow limited dragging via header
+                return handleContainerTouch(event);
             }
         });
-        
-        // TAMBAHAN: Set touch listener juga pada icon button untuk backup
-        if (iconButton != null) {
-            iconButton.setOnTouchListener(new OnTouchListener() {
-                @Override
-                public boolean onTouch(View v, MotionEvent event) {
-                    Logger.d(TAG, "🔥 ICON BUTTON TOUCH! Action: " + event.getAction());
-                    
-                    // Forward touch events to parent handling
-                    return OverlayView.this.onTouchEvent(event);
+    }
+    
+    /**
+     * ENHANCED: Handle touch events untuk icon drag
+     */
+    private boolean handleIconDragTouch(MotionEvent event) {
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                initialX = event.getRawX();
+                initialY = event.getRawY();
+                initialTouchX = event.getX();
+                initialTouchY = event.getY();
+                isDragging = false;
+                isClickPending = true;
+                
+                // Start click timeout
+                postDelayed(() -> isClickPending = false, CLICK_TIMEOUT);
+                
+                Logger.v(TAG, "Icon touch down at (" + initialX + "," + initialY + ")");
+                return true;
+                
+            case MotionEvent.ACTION_MOVE:
+                float deltaX = event.getRawX() - initialX;
+                float deltaY = event.getRawY() - initialY;
+                float distance = (float) Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                
+                // Start dragging if moved beyond threshold
+                if (!isDragging && distance > CLICK_THRESHOLD) {
+                    isDragging = true;
+                    isClickPending = false;
+                    Logger.d(TAG, "Icon drag started, distance: " + distance);
                 }
-            });
-            Logger.d(TAG, "✅ Icon button touch listener set");
+                
+                if (isDragging && service != null) {
+                    // Calculate new position
+                    int newX = (int) (event.getRawX() - initialTouchX);
+                    int newY = (int) (event.getRawY() - initialTouchY);
+                    
+                    // Update overlay position
+                    service.updateOverlayPosition(newX, newY);
+                    Logger.v(TAG, "Icon dragging to (" + newX + "," + newY + ")");
+                }
+                return true;
+                
+            case MotionEvent.ACTION_UP:
+                Logger.d(TAG, "Icon touch up - isDragging: " + isDragging + ", isClickPending: " + isClickPending);
+                
+                if (!isDragging && isClickPending) {
+                    // This was a click, not a drag
+                    performClick();
+                    Logger.d(TAG, "Icon click detected");
+                } else if (isDragging) {
+                    Logger.d(TAG, "Icon drag completed");
+                }
+                
+                // Reset states
+                isDragging = false;
+                isClickPending = false;
+                return true;
+                
+            default:
+                return false;
         }
-        
-        Logger.d(TAG, "✅ Touch handling setup completed");
     }
-
+    
     /**
-     * Handle touch down - record initial positions
+     * Handle touch for container drag (FULL/SETTINGS states)
      */
-    private boolean handleTouchDown(MotionEvent event) {
-        Logger.d(TAG, "🟢 handleTouchDown called");
-        
-        // Record initial touch position
-        initialTouchX = event.getRawX();
-        initialTouchY = event.getRawY();
-        
-        // Record current overlay position from service
-        if (service != null) {
-            initialX = service.getCurrentX();
-            initialY = service.getCurrentY();
-            Logger.d(TAG, "✅ Got position from service: " + initialX + ", " + initialY);
-        } else {
-            initialX = 0;
-            initialY = 0;
-            Logger.w(TAG, "⚠️ Service is null, using default position");
-        }
-        
-        isDragging = false;
-        
-        // Visual feedback - scale down icon slightly
-        animatePress(true);
-        
-        Logger.d(TAG, "Touch down - Start: " + initialTouchX + ", " + initialTouchY + 
-                 " | Current pos: " + initialX + ", " + initialY);
-        return true;
-    }
-
-    /**
-     * Handle touch move - update overlay position
-     */
-    private boolean handleTouchMove(MotionEvent event) {
-        if (service == null) {
-            Logger.w(TAG, "⚠️ Service is null in handleTouchMove");
-            return false;
-        }
-        
-        float deltaX = event.getRawX() - initialTouchX;
-        float deltaY = event.getRawY() - initialTouchY;
-        
-        // Check if movement exceeds click threshold
-        if (!isDragging && (Math.abs(deltaX) > CLICK_THRESHOLD || Math.abs(deltaY) > CLICK_THRESHOLD)) {
-            isDragging = true;
-            Logger.d(TAG, "🚀 Started dragging - Delta: " + deltaX + ", " + deltaY);
-            
-            // Visual feedback - scale up slightly during drag
-            animatePress(false);
-            iconButton.setAlpha(0.8f);
-        }
-        
-        if (isDragging) {
-            // Calculate new position
-            int newX = Math.round(initialX + deltaX);
-            int newY = Math.round(initialY + deltaY);
-            
-            // Update overlay position through service
-            service.updateOverlayPosition(newX, newY);
-            
-            return true;
-        }
-        
-        return false;
-    }
-
-    /**
-     * Handle touch up - finalize drag or handle click
-     */
-    private boolean handleTouchUp(MotionEvent event) {
-        Logger.d(TAG, "🔴 handleTouchUp called - isDragging: " + isDragging);
-        
-        // Reset visual feedback
-        animatePress(false);
-        iconButton.setAlpha(1.0f);
-        
-        if (isDragging) {
-            Logger.d(TAG, "Drag ended - Final position: " + 
-                     (service != null ? service.getCurrentX() : "unknown") + ", " + 
-                     (service != null ? service.getCurrentY() : "unknown"));
-            
-            // SNAP TO EDGE setelah drag selesai
-            if (service != null) {
-                Logger.d(TAG, "🎯 Triggering snap to edge...");
-                service.snapToEdge();
-            } else {
-                Logger.w(TAG, "⚠️ Cannot snap - service is null");
-            }
-            
-            isDragging = false;
-            return true;
-        }
-        
-        Logger.d(TAG, "Not dragging - allowing click events");
-        return false;
-    }
-
-    /**
-     * Animate press feedback
-     */
-    private void animatePress(boolean pressed) {
-        if (iconButton != null) {
-            float scale = pressed ? 0.95f : 1.0f;
-            iconButton.animate()
-                .scaleX(scale)
-                .scaleY(scale)
-                .setDuration(100)
-                .start();
+    private boolean handleContainerTouch(MotionEvent event) {
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                initialX = event.getRawX();
+                initialY = event.getRawY();
+                initialTouchX = event.getX();
+                initialTouchY = event.getY();
+                isDragging = false;
+                return true;
+                
+            case MotionEvent.ACTION_MOVE:
+                float deltaX = event.getRawX() - initialX;
+                float deltaY = event.getRawY() - initialY;
+                
+                if (!isDragging && (Math.abs(deltaX) > CLICK_THRESHOLD || Math.abs(deltaY) > CLICK_THRESHOLD)) {
+                    isDragging = true;
+                }
+                
+                if (isDragging && service != null) {
+                    int newX = (int) (event.getRawX() - initialTouchX);
+                    int newY = (int) (event.getRawY() - initialTouchY);
+                    service.updateOverlayPosition(newX, newY);
+                }
+                return true;
+                
+            case MotionEvent.ACTION_UP:
+                isDragging = false;
+                return true;
+                
+            default:
+                return false;
         }
     }
-
+    
     /**
-     * Set overlay state and update visibility - FIXED TO PUBLIC
+     * ENHANCED: Set overlay state dengan smooth transition
      */
     public void setState(OverlayState newState) {
-        if (currentState == newState) return;
+        if (!isInitialized || newState == currentState) return;
         
-        OverlayState previousState = currentState;
-        currentState = newState;
-        
-        Logger.d(TAG, "🔄 State changing from " + previousState + " to " + currentState);
+        Logger.d(TAG, "State transition: " + currentState + " → " + newState);
         
         // Hide all containers
-        iconContainer.setVisibility(View.GONE);
-        fullContainer.setVisibility(View.GONE);
-        settingsContainer.setVisibility(View.GONE);
+        iconContainer.setVisibility(GONE);
+        fullContainer.setVisibility(GONE);
+        settingsContainer.setVisibility(GONE);
         
-        // Show current state container
-        switch (currentState) {
+        // Show target container with animation
+        switch (newState) {
             case ICON:
-                iconContainer.setVisibility(View.VISIBLE);
-                Logger.d(TAG, "📱 Icon container visible");
+                iconContainer.setVisibility(VISIBLE);
+                animateTransition(iconContainer, 0.6f, 1.0f);
+                isMinimized = true; // Compatibility
                 break;
             case FULL:
-                fullContainer.setVisibility(View.VISIBLE);
-                Logger.d(TAG, "📋 Full container visible");
+                fullContainer.setVisibility(VISIBLE);
+                animateTransition(fullContainer, 0.8f, 1.0f);
+                isMinimized = false; // Compatibility
                 break;
             case SETTINGS:
-                settingsContainer.setVisibility(View.VISIBLE);
-                Logger.d(TAG, "⚙️ Settings container visible");
+                settingsContainer.setVisibility(VISIBLE);
+                animateTransition(settingsContainer, 0.8f, 1.0f);
+                isMinimized = false; // Compatibility
                 break;
         }
         
-        Logger.d(TAG, "State changed from " + previousState + " to " + currentState);
-        
-        // Update service notification if needed
-        if (service != null) {
-            String stateText = "";
-            switch (currentState) {
-                case ICON:
-                    stateText = "Pool Assistant overlay minimized";
-                    break;
-                case FULL:
-                    stateText = "Pool Assistant overlay expanded";
-                    break;
-                case SETTINGS:
-                    stateText = "Pool Assistant settings opened";
-                    break;
-            }
-        }
+        currentState = newState;
+        Logger.d(TAG, "State changed to: " + currentState);
     }
-
+    
     /**
      * Animate state transition
      */
-    private void animateStateTransition() {
-        // Simple fade animation
-        setAlpha(0.7f);
-        ObjectAnimator fadeIn = ObjectAnimator.ofFloat(this, "alpha", 0.7f, 1.0f);
-        fadeIn.setDuration(200);
-        fadeIn.setInterpolator(new DecelerateInterpolator());
-        fadeIn.start();
+    private void animateTransition(View targetView, float fromScale, float toScale) {
+        ObjectAnimator scaleX = ObjectAnimator.ofFloat(targetView, "scaleX", fromScale, toScale);
+        ObjectAnimator scaleY = ObjectAnimator.ofFloat(targetView, "scaleY", fromScale, toScale);
+        ObjectAnimator alpha = ObjectAnimator.ofFloat(targetView, "alpha", 0.7f, 1.0f);
         
-        // Scale animation for smooth transition
-        setScaleX(0.95f);
-        setScaleY(0.95f);
-        ObjectAnimator scaleX = ObjectAnimator.ofFloat(this, "scaleX", 0.95f, 1.0f);
-        ObjectAnimator scaleY = ObjectAnimator.ofFloat(this, "scaleY", 0.95f, 1.0f);
-        scaleX.setDuration(200);
-        scaleY.setDuration(200);
+        scaleX.setDuration(250);
+        scaleY.setDuration(250);
+        alpha.setDuration(250);
+        
         scaleX.setInterpolator(new DecelerateInterpolator());
         scaleY.setInterpolator(new DecelerateInterpolator());
+        alpha.setInterpolator(new DecelerateInterpolator());
+        
         scaleX.start();
         scaleY.start();
+        alpha.start();
     }
-
+    
     /**
-     * Reset overlay to center position
+     * Reset overlay position
      */
     private void resetOverlayPosition() {
         if (service != null) {
-            // Move to center of screen (approximate)
-            int centerX = 100;
-            int centerY = 300;
-            service.updateOverlayPosition(centerX, centerY);
-            Logger.d(TAG, "Overlay position reset to center: " + centerX + ", " + centerY);
-            
-            // Visual feedback
-            animateStateTransition();
-        } else {
-            Logger.w(TAG, "Cannot reset position - service is null");
+            service.updateOverlayPosition(100, 100);
+            Logger.d(TAG, "Overlay position reset to (100, 100)");
         }
     }
-
+    
     /**
-     * Exit application
+     * Setup backward compatibility dengan old system
      */
-    private void exitApplication() {
-        if (service != null) {
-            Logger.d(TAG, "Application exit requested");
-            
-            // Hide overlay first
-            service.hideOverlay();
-            
-            // Stop service
-            service.stopSelf();
-        } else {
-            Logger.w(TAG, "Cannot exit - service is null");
-        }
+    private void setupBackwardCompatibility() {
+        mainContainer = fullContainer;
+        minimizedContainer = iconContainer;
+        btnMinimize = btnClose; 
+        btnExpand = iconButton;
+        btnSettings_compat = btnSettings;
     }
-
-    /**
-     * Get current overlay state
-     */
+    
+    // =============================================================================
+    // PUBLIC API METHODS (Required by OverlayManager + backward compatibility)
+    // =============================================================================
+    
     public OverlayState getCurrentState() {
         return currentState;
     }
-
-    /**
-     * Update initial position (called by service when position changes)
-     */
-    public void updateInitialPosition(int x, int y) {
-        initialX = x;
-        initialY = y;
-        Logger.d(TAG, "Initial position updated to: " + x + ", " + y);
+    
+    // COMPATIBILITY: Old minimize/expand system
+    public void setMinimized(boolean minimized) {
+        setState(minimized ? OverlayState.ICON : OverlayState.FULL);
+        isMinimized = minimized;
     }
-
-    /**
-     * Check if overlay is currently being dragged
-     */
-    public boolean isDragging() {
-        return isDragging;
+    
+    public boolean isMinimized() {
+        return currentState == OverlayState.ICON;
     }
-
-    /**
-     * Force state change (for external control)
-     */
-    public void forceState(OverlayState state) {
-        setState(state);
-        animateStateTransition();
+    
+    // REQUIRED BY OverlayManager: Feature state methods
+    public boolean isBasicAimEnabled() {
+        return switchFiturAim != null ? switchFiturAim.isChecked() : false;
     }
-
-    /**
-     * Get switch states (for settings persistence)
-     */
-    public boolean isFiturAimEnabled() {
-        return switchFiturAim != null && switchFiturAim.isChecked();
+    
+    public boolean isRootAimEnabled() {
+        return switchAimRootMode != null ? switchAimRootMode.isChecked() : false;
     }
-
-    public boolean isAimRootModeEnabled() {
-        return switchAimRootMode != null && switchAimRootMode.isChecked();
+    
+    public boolean isPredictionEnabled() {
+        return switchPrediksi != null ? switchPrediksi.isChecked() : false;
     }
-
-    public boolean isPrediksiEnabled() {
-        return switchPrediksi != null && switchPrediksi.isChecked();
-    }
-
-    public boolean isLightThemeEnabled() {
-        return switchTheme != null && switchTheme.isChecked();
-    }
-
-    /**
-     * Get slider values (for settings persistence)
-     */
+    
     public int getOpacityValue() {
         return seekBarOpacity != null ? seekBarOpacity.getProgress() : 80;
     }
-
-    public int getThicknessValue() {
-        return seekBarKetebalan != null ? seekBarKetebalan.getProgress() : 60;
+    
+    public int getLineThicknessValue() {
+        return seekBarKetebalan != null ? seekBarKetebalan.getProgress() : 5;
     }
-
+    
     /**
-     * Set switch states (for settings restoration)
+     * Update status text
      */
-    public void setFiturAim(boolean enabled) {
-        if (switchFiturAim != null) {
-            switchFiturAim.setChecked(enabled);
+    public void updateStatus(String status) {
+        if (tvStatus != null) {
+            post(() -> {
+                tvStatus.setText(status);
+                Logger.d(TAG, "Status updated: " + status);
+            });
         }
     }
-
-    public void setAimRootMode(boolean enabled) {
-        if (switchAimRootMode != null) {
-            switchAimRootMode.setChecked(enabled);
-        }
-    }
-
-    public void setPrediksi(boolean enabled) {
-        if (switchPrediksi != null) {
-            switchPrediksi.setChecked(enabled);
-        }
-    }
-
-    public void setLightTheme(boolean enabled) {
-        if (switchTheme != null) {
-            switchTheme.setChecked(enabled);
-        }
-    }
-
+    
     /**
-     * Set slider values (for settings restoration)
+     * ENHANCED: Custom drawing dengan state-aware borders
      */
-    public void setOpacityValue(int value) {
-        if (seekBarOpacity != null) {
-            seekBarOpacity.setProgress(Math.max(0, Math.min(100, value)));
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        
+        // Only draw border for FULL/SETTINGS states
+        if (currentState != OverlayState.ICON) {
+            drawBorder(canvas);
         }
     }
-
-    public void setThicknessValue(int value) {
-        if (seekBarKetebalan != null) {
-            seekBarKetebalan.setProgress(Math.max(0, Math.min(100, value)));
-        }
-    }
-
+    
     /**
-     * Check if view is properly initialized
+     * Draw border untuk overlay window
      */
-    public boolean isInitialized() {
-        return isInitialized;
+    private void drawBorder(Canvas canvas) {
+        Paint borderPaint = new Paint();
+        borderPaint.setColor(Color.parseColor("#4CAF50"));
+        borderPaint.setStyle(Paint.Style.STROKE);
+        borderPaint.setStrokeWidth(4f);
+        borderPaint.setAntiAlias(true);
+        
+        RectF rect = new RectF(2, 2, getWidth() - 2, getHeight() - 2);
+        canvas.drawRoundRect(rect, 12f, 12f, borderPaint);
     }
-
+    
     /**
-     * Cleanup resources
+     * Handle window focus changes
+     */
+    @Override
+    public void onWindowFocusChanged(boolean hasWindowFocus) {
+        super.onWindowFocusChanged(hasWindowFocus);
+        if (hasWindowFocus) {
+            updateStatus("Pool Assistant Ready");
+        }
+    }
+    
+    /**
+     * ENHANCED: Cleanup resources
      */
     public void cleanup() {
-        Logger.d(TAG, "Cleaning up OverlayView resources");
+        Logger.d(TAG, "Cleaning up Enhanced OverlayView resources");
         
-        // Clear click listeners
-        if (iconButton != null) iconButton.setOnClickListener(null);
-        if (btnSettings != null) btnSettings.setOnClickListener(null);
-        if (btnClose != null) btnClose.setOnClickListener(null);
-        if (btnPlus != null) btnPlus.setOnClickListener(null);
-        if (btnReset != null) btnReset.setOnClickListener(null);
-        if (btnExit != null) btnExit.setOnClickListener(null);
-        
-        // Clear seekbar listeners
-        if (seekBarOpacity != null) seekBarOpacity.setOnSeekBarChangeListener(null);
-        if (seekBarKetebalan != null) seekBarKetebalan.setOnSeekBarChangeListener(null);
-        
-        // Clear switch listeners
-        if (switchFiturAim != null) switchFiturAim.setOnCheckedChangeListener(null);
-        if (switchAimRootMode != null) switchAimRootMode.setOnCheckedChangeListener(null);
-        if (switchPrediksi != null) switchPrediksi.setOnCheckedChangeListener(null);
-        if (switchTheme != null) switchTheme.setOnCheckedChangeListener(null);
-        
-        // Clear touch listener
+        // Remove touch listeners
         setOnTouchListener(null);
-        if (iconButton != null) iconButton.setOnTouchListener(null);
-        
-        // Clear service reference
-        service = null;
-        
-        isInitialized = false;
-        Logger.d(TAG, "OverlayView cleanup completed");
-    }
-
-    /**
-     * Debug method - log current state
-     */
-    public void logCurrentState() {
-        Logger.d(TAG, "=== OverlayView State Debug ===");
-        Logger.d(TAG, "Current State: " + currentState);
-        Logger.d(TAG, "Is Dragging: " + isDragging);
-        Logger.d(TAG, "Is Initialized: " + isInitialized);
-        Logger.d(TAG, "Service: " + (service != null ? "Connected" : "Null"));
-        Logger.d(TAG, "Position: " + initialX + ", " + initialY);
-        
-        if (isInitialized) {
-            Logger.d(TAG, "Fitur Aim: " + isFiturAimEnabled());
-            Logger.d(TAG, "Root Mode: " + isAimRootModeEnabled());
-            Logger.d(TAG, "Prediksi: " + isPrediksiEnabled());
-            Logger.d(TAG, "Light Theme: " + isLightThemeEnabled());
-            Logger.d(TAG, "Opacity: " + getOpacityValue() + "%");
-            Logger.d(TAG, "Thickness: " + getThicknessValue() + "%");
-        }
-        
-        Logger.d(TAG, "================================");
-    }
-
-    /**
-     * Method untuk kompatibilitas dengan OverlayManager
-     */
-    public boolean isBasicAimEnabled() {
-        return isFiturAimEnabled();
-    }
-
-    public boolean isRootAimEnabled() {
-        return isAimRootModeEnabled();
-    }
-
-    public boolean isPredictionEnabled() {
-        return isPrediksiEnabled();
-    }
-
-    public int getLineThicknessValue() {
-        return getThicknessValue();
-    }
-
-    /**
-     * Force refresh touch handling (untuk troubleshooting)
-     */
-    public void refreshTouchHandling() {
-        Logger.d(TAG, "🔄 Refreshing touch handling...");
-        setupTouchHandling();
-    }
-
-    /**
-     * Test method untuk cek apakah touch berfungsi
-     */
-    public void testTouch() {
-        Logger.d(TAG, "🧪 TOUCH TEST:");
-        Logger.d(TAG, "- Is Clickable: " + isClickable());
-        Logger.d(TAG, "- Is Enabled: " + isEnabled());
-        Logger.d(TAG, "- Current State: " + currentState);
-        Logger.d(TAG, "- Service Connected: " + (service != null));
-        Logger.d(TAG, "- Is Initialized: " + isInitialized);
-        Logger.d(TAG, "- Is Dragging: " + isDragging);
-        
-        if (iconButton != null) {
-            Logger.d(TAG, "- Icon Button Clickable: " + iconButton.isClickable());
-            Logger.d(TAG, "- Icon Button Enabled: " + iconButton.isEnabled());
-            Logger.d(TAG, "- Icon Button Visibility: " + (iconButton.getVisibility() == View.VISIBLE ? "VISIBLE" : "HIDDEN"));
-        }
-        
         if (iconContainer != null) {
-            Logger.d(TAG, "- Icon Container Visibility: " + (iconContainer.getVisibility() == View.VISIBLE ? "VISIBLE" : "HIDDEN"));
+            iconContainer.setOnTouchListener(null);
         }
+        
+        // Clear references
+        service = null;
+    }
+    
+    /**
+     * ENHANCED: Get enhanced view info untuk debugging
+     */
+    public String getViewInfo() {
+        return String.format(
+            "Enhanced OverlayView - State: %s, Dragging: %s, Initialized: %s", 
+            currentState, isDragging, isInitialized
+        );
     }
 }

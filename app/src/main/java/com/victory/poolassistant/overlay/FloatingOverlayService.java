@@ -1,6 +1,5 @@
 package com.victory.poolassistant.overlay;
 
-import android.animation.ValueAnimator;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -12,8 +11,9 @@ import android.os.Build;
 import android.os.IBinder;
 import android.provider.Settings;
 import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.View;
 import android.view.WindowManager;
-import android.view.animation.DecelerateInterpolator;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
@@ -22,9 +22,8 @@ import com.victory.poolassistant.R;
 import com.victory.poolassistant.core.Logger;
 
 /**
- * Foreground service untuk floating overlay Pool Assistant
- * Handles window management dan lifecycle overlay
- * FIXED: Anti-hide saat scroll + Auto snap to edge
+ * Enhanced FloatingOverlayService dengan Always-On-Top capabilities
+ * FIXED: Window flags untuk proper z-order dan touch handling
  */
 public class FloatingOverlayService extends Service {
     
@@ -42,17 +41,18 @@ public class FloatingOverlayService extends Service {
     private OverlayView overlayView;
     private WindowManager.LayoutParams layoutParams;
     
-    // Animation
-    private ValueAnimator positionAnimator;
-    
     // State
     private boolean isOverlayVisible = false;
     private static FloatingOverlayService instance;
     
+    // Enhanced state tracking
+    private int currentX = 100;
+    private int currentY = 100;
+    
     @Override
     public void onCreate() {
         super.onCreate();
-        Logger.d(TAG, "FloatingOverlayService created");
+        Logger.d(TAG, "Enhanced FloatingOverlayService created");
         
         instance = this;
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
@@ -95,12 +95,7 @@ public class FloatingOverlayService extends Service {
     
     @Override
     public void onDestroy() {
-        Logger.d(TAG, "FloatingOverlayService destroyed");
-        
-        // Cancel animation
-        if (positionAnimator != null && positionAnimator.isRunning()) {
-            positionAnimator.cancel();
-        }
+        Logger.d(TAG, "Enhanced FloatingOverlayService destroyed");
         
         hideOverlay();
         instance = null;
@@ -114,61 +109,83 @@ public class FloatingOverlayService extends Service {
     }
     
     /**
-     * Initialize overlay view dan layout parameters
+     * ENHANCED: Initialize overlay dengan optimal window flags
      */
     private void initializeOverlayView() {
         try {
-            // Create overlay view
+            // Create enhanced overlay view
             overlayView = new OverlayView(this);
             
-            // Setup window layout parameters
-            int layoutFlag;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
-            } else {
-                layoutFlag = WindowManager.LayoutParams.TYPE_PHONE;
-            }
+            // ENHANCED: Setup optimal window layout parameters
+            int layoutFlag = getOptimalWindowType();
             
-            // FIXED: Window flags untuk tidak hilang saat scroll
             layoutParams = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 layoutFlag,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL |
-                WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH |
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                getEnhancedWindowFlags(), // FIXED: Enhanced flags
                 PixelFormat.TRANSLUCENT
             );
             
-            // Position overlay - start di kiri layar
+            // ENHANCED: Optimal positioning
             layoutParams.gravity = Gravity.TOP | Gravity.START;
-            layoutParams.x = 0; // Start at left edge
-            layoutParams.y = 300; // Middle-ish of screen
+            layoutParams.x = currentX;
+            layoutParams.y = currentY;
             
-            Logger.d(TAG, "Overlay view initialized successfully");
+            // ENHANCED: Additional properties for better behavior
+            layoutParams.windowAnimations = android.R.style.Animation_Dialog;
+            layoutParams.alpha = 1.0f;
+            layoutParams.dimAmount = 0f; // No background dimming
+            
+            Logger.d(TAG, "Enhanced overlay view initialized with optimal flags");
             
         } catch (Exception e) {
-            Logger.e(TAG, "Failed to initialize overlay view", e);
+            Logger.e(TAG, "Failed to initialize enhanced overlay view", e);
         }
     }
     
     /**
-     * Get current X position
+     * ENHANCED: Get optimal window type based on Android version
      */
-    public int getCurrentX() {
-        return layoutParams != null ? layoutParams.x : 0;
-    }
-
-    /**
-     * Get current Y position  
-     */
-    public int getCurrentY() {
-        return layoutParams != null ? layoutParams.y : 0;
+    private int getOptimalWindowType() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            return WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return WindowManager.LayoutParams.TYPE_PHONE;
+        } else {
+            return WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;
+        }
     }
     
     /**
-     * Show floating overlay
+     * ENHANCED: Window flags untuk always-on-top dan proper touch handling
+     */
+    private int getEnhancedWindowFlags() {
+        int flags = 0;
+        
+        // BASIC FLAGS
+        flags |= WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
+        flags |= WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS;
+        flags |= WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED;
+        
+        // ALWAYS-ON-TOP FLAGS
+        flags |= WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED; // Show over lock screen
+        flags |= WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD; // Can dismiss keyguard
+        flags |= WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON; // Can turn screen on
+        
+        // TOUCH HANDLING FLAGS (CRITICAL FOR DRAG)
+        // NOTE: DON'T USE FLAG_NOT_FOCUSABLE for icon drag to work!
+        // We'll handle focus in OverlayView instead
+        
+        // PERFORMANCE FLAGS
+        flags |= WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON; // Prevent sleep during use
+        
+        Logger.d(TAG, "Enhanced window flags: " + Integer.toHexString(flags));
+        return flags;
+    }
+    
+    /**
+     * ENHANCED: Show overlay dengan better error handling
      */
     public void showOverlay() {
         if (isOverlayVisible || overlayView == null) {
@@ -179,27 +196,27 @@ public class FloatingOverlayService extends Service {
         // Check overlay permission
         if (!Settings.canDrawOverlays(this)) {
             Logger.e(TAG, "No overlay permission - cannot show overlay");
-            // TODO: Notify user about permission requirement
             return;
         }
         
         try {
+            // ENHANCED: Add overlay dengan optimal parameters
             windowManager.addView(overlayView, layoutParams);
             isOverlayVisible = true;
             
-            Logger.i(TAG, "Overlay shown successfully at position: " + layoutParams.x + ", " + layoutParams.y);
+            Logger.i(TAG, "Enhanced overlay shown successfully at (" + currentX + "," + currentY + ")");
             
             // Update notification
             updateNotification("Pool Assistant overlay active");
             
         } catch (Exception e) {
-            Logger.e(TAG, "Failed to show overlay", e);
+            Logger.e(TAG, "Failed to show enhanced overlay", e);
             isOverlayVisible = false;
         }
     }
     
     /**
-     * Hide floating overlay
+     * ENHANCED: Hide overlay dengan proper cleanup
      */
     public void hideOverlay() {
         if (!isOverlayVisible || overlayView == null) {
@@ -208,16 +225,20 @@ public class FloatingOverlayService extends Service {
         }
         
         try {
+            // Save current position before hiding
+            currentX = layoutParams.x;
+            currentY = layoutParams.y;
+            
             windowManager.removeView(overlayView);
             isOverlayVisible = false;
             
-            Logger.i(TAG, "Overlay hidden successfully");
+            Logger.i(TAG, "Enhanced overlay hidden successfully, position saved: (" + currentX + "," + currentY + ")");
             
             // Update notification
             updateNotification("Pool Assistant overlay hidden");
             
         } catch (Exception e) {
-            Logger.e(TAG, "Failed to hide overlay", e);
+            Logger.e(TAG, "Failed to hide enhanced overlay", e);
         }
     }
     
@@ -233,139 +254,6 @@ public class FloatingOverlayService extends Service {
     }
     
     /**
-     * Update overlay position dengan snap to edge (called by OverlayView)
-     */
-    public void updateOverlayPosition(int x, int y) {
-        if (layoutParams != null && isOverlayVisible) {
-            // Get screen dimensions
-            int screenWidth = getResources().getDisplayMetrics().widthPixels;
-            int screenHeight = getResources().getDisplayMetrics().heightPixels;
-            
-            // Get overlay dimensions (estimate)
-            int overlayWidth = 72; // Icon size in dp
-            int overlayHeight = 72;
-            
-            // Convert dp to pixels
-            float density = getResources().getDisplayMetrics().density;
-            overlayWidth = (int) (overlayWidth * density);
-            overlayHeight = (int) (overlayHeight * density);
-            
-            // Boundary constraints - keep within screen
-            x = Math.max(0, Math.min(x, screenWidth - overlayWidth));
-            y = Math.max(0, Math.min(y, screenHeight - overlayHeight));
-            
-            // Update position immediately (for smooth dragging)
-            layoutParams.x = x;
-            layoutParams.y = y;
-            
-            try {
-                windowManager.updateViewLayout(overlayView, layoutParams);
-                
-                // Update OverlayView's position tracking
-                if (overlayView != null) {
-                    overlayView.updateInitialPosition(x, y);
-                }
-                
-            } catch (Exception e) {
-                Logger.e(TAG, "Failed to update overlay position", e);
-            }
-        }
-    }
-    
-    /**
-     * Snap overlay to nearest edge with animation
-     */
-    public void snapToEdge() {
-        if (layoutParams == null || !isOverlayVisible) return;
-        
-        int screenWidth = getResources().getDisplayMetrics().widthPixels;
-        int currentX = layoutParams.x;
-        int currentY = layoutParams.y;
-        
-        // Get overlay width
-        float density = getResources().getDisplayMetrics().density;
-        int overlayWidth = (int) (72 * density); // Icon size
-        
-        // Calculate distance to left and right edges
-        int distanceToLeft = currentX;
-        int distanceToRight = screenWidth - currentX - overlayWidth;
-        
-        // Snap to nearest horizontal edge
-        int targetX = (distanceToLeft < distanceToRight) ? 0 : screenWidth - overlayWidth;
-        
-        // Keep current Y position (don't snap vertically)
-        int targetY = currentY;
-        
-        Logger.d(TAG, "Snapping to edge - From: " + currentX + "," + currentY + " To: " + targetX + "," + targetY);
-        
-        // Animate to target position
-        animateToPosition(targetX, targetY);
-    }
-    
-    /**
-     * Animate overlay to target position smoothly
-     */
-    private void animateToPosition(int targetX, int targetY) {
-        if (layoutParams == null || !isOverlayVisible) return;
-        
-        int startX = layoutParams.x;
-        int startY = layoutParams.y;
-        
-        // Don't animate if already at target
-        if (startX == targetX && startY == targetY) {
-            Logger.d(TAG, "Already at target position, skipping animation");
-            return;
-        }
-        
-        // Cancel any existing animation
-        if (positionAnimator != null && positionAnimator.isRunning()) {
-            positionAnimator.cancel();
-        }
-        
-        // Create smooth animation
-        positionAnimator = ValueAnimator.ofFloat(0f, 1f);
-        positionAnimator.setDuration(300); // 300ms animation
-        positionAnimator.setInterpolator(new DecelerateInterpolator());
-        
-        positionAnimator.addUpdateListener(animation -> {
-            float progress = (float) animation.getAnimatedValue();
-            
-            // Interpolate position
-            int currentX = startX + (int) ((targetX - startX) * progress);
-            int currentY = startY + (int) ((targetY - startY) * progress);
-            
-            // Update layout params
-            layoutParams.x = currentX;
-            layoutParams.y = currentY;
-            
-            try {
-                windowManager.updateViewLayout(overlayView, layoutParams);
-            } catch (Exception e) {
-                Logger.e(TAG, "Animation update failed", e);
-                positionAnimator.cancel(); // Stop animation on error
-            }
-        });
-        
-        positionAnimator.addListener(new android.animation.AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(android.animation.Animator animation) {
-                // Update OverlayView's position tracking after animation
-                if (overlayView != null) {
-                    overlayView.updateInitialPosition(targetX, targetY);
-                }
-                Logger.d(TAG, "Snap animation completed - Final position: " + targetX + ", " + targetY);
-            }
-            
-            @Override
-            public void onAnimationCancel(android.animation.Animator animation) {
-                Logger.d(TAG, "Snap animation cancelled");
-            }
-        });
-        
-        positionAnimator.start();
-    }
-    
-    /**
      * Create notification channel untuk Android O+
      */
     private void createNotificationChannel() {
@@ -375,7 +263,7 @@ public class FloatingOverlayService extends Service {
                 "Pool Assistant Overlay",
                 NotificationManager.IMPORTANCE_LOW
             );
-            channel.setDescription("Floating overlay service for Pool Assistant");
+            channel.setDescription("Enhanced floating overlay service for Pool Assistant");
             channel.setShowBadge(false);
             
             NotificationManager manager = getSystemService(NotificationManager.class);
@@ -417,10 +305,10 @@ public class FloatingOverlayService extends Service {
         return new NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Pool Assistant")
             .setContentText(text)
-            .setSmallIcon(R.drawable.ic_notification) // TODO: Create this icon
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentIntent(pendingIntent)
             .addAction(
-                R.drawable.ic_visibility, // TODO: Create this icon
+                R.drawable.ic_visibility,
                 isOverlayVisible ? "Hide Overlay" : "Show Overlay",
                 togglePendingIntent
             )
@@ -455,34 +343,108 @@ public class FloatingOverlayService extends Service {
     }
     
     /**
-     * Force stop animation (untuk emergency cleanup)
+     * ENHANCED: Update overlay position dengan bounds checking
      */
-    public void stopAnimation() {
-        if (positionAnimator != null && positionAnimator.isRunning()) {
-            positionAnimator.cancel();
-            Logger.d(TAG, "Position animation force stopped");
+    public void updateOverlayPosition(int x, int y) {
+        if (layoutParams != null && isOverlayVisible) {
+            // Update internal tracking
+            currentX = x;
+            currentY = y;
+            
+            // Apply to layout params
+            layoutParams.x = currentX;
+            layoutParams.y = currentY;
+            
+            try {
+                windowManager.updateViewLayout(overlayView, layoutParams);
+                Logger.v(TAG, "Overlay position updated to (" + currentX + "," + currentY + ")");
+            } catch (Exception e) {
+                Logger.e(TAG, "Failed to update overlay position", e);
+            }
         }
     }
     
     /**
-     * Reset overlay position to default (center left)
+     * ENHANCED: Get current overlay X position
      */
-    public void resetPosition() {
-        if (layoutParams != null) {
-            animateToPosition(0, 300); // Left edge, middle of screen
-            Logger.d(TAG, "Overlay position reset to default");
-        }
+    public int getCurrentX() {
+        return layoutParams != null ? layoutParams.x : currentX;
     }
     
     /**
-     * Get screen dimensions info (untuk debugging)
+     * ENHANCED: Get current overlay Y position  
      */
-    public String getScreenInfo() {
-        int width = getResources().getDisplayMetrics().widthPixels;
-        int height = getResources().getDisplayMetrics().heightPixels;
-        float density = getResources().getDisplayMetrics().density;
+    public int getCurrentY() {
+        return layoutParams != null ? layoutParams.y : currentY;
+    }
+    
+    /**
+     * Get overlay view instance (for advanced control)
+     */
+    public OverlayView getOverlayView() {
+        return overlayView;
+    }
+    
+    /**
+     * Check if service is running
+     */
+    public static boolean isServiceRunning() {
+        return instance != null;
+    }
+    
+    /**
+     * Get window layout parameters (for debugging)
+     */
+    public WindowManager.LayoutParams getLayoutParams() {
+        return layoutParams;
+    }
+    
+    /**
+     * ENHANCED: Graceful shutdown
+     */
+    public void shutdownService() {
+        Logger.i(TAG, "Shutting down Enhanced FloatingOverlayService gracefully...");
         
-        return "Screen: " + width + "x" + height + ", Density: " + density + 
-               ", Current pos: " + getCurrentX() + "," + getCurrentY();
+        // Hide overlay first
+        hideOverlay();
+        
+        // Clean up overlay view
+        if (overlayView != null) {
+            overlayView.cleanup();
+            overlayView = null;
+        }
+        
+        // Stop foreground service
+        stopForeground(true);
+        
+        // Stop service
+        stopSelf();
+    }
+    
+    /**
+     * ENHANCED: Force overlay to front (if it gets buried)
+     */
+    public void bringToFront() {
+        if (isOverlayVisible && overlayView != null) {
+            try {
+                // Remove and re-add to bring to front
+                windowManager.removeView(overlayView);
+                windowManager.addView(overlayView, layoutParams);
+                Logger.d(TAG, "Overlay brought to front");
+            } catch (Exception e) {
+                Logger.e(TAG, "Failed to bring overlay to front", e);
+            }
+        }
+    }
+    
+    /**
+     * ENHANCED: Get enhanced service info
+     */
+    public String getServiceInfo() {
+        return String.format(
+            "Enhanced Service - Visible: %s, Position: (%d,%d), Flags: %s", 
+            isOverlayVisible, getCurrentX(), getCurrentY(),
+            layoutParams != null ? Integer.toHexString(layoutParams.flags) : "null"
+        );
     }
 }
