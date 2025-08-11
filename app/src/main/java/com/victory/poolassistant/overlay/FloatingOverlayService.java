@@ -22,8 +22,8 @@ import com.victory.poolassistant.R;
 import com.victory.poolassistant.core.Logger;
 
 /**
- * Enhanced FloatingOverlayService dengan Always-On-Top capabilities
- * FIXED: Window flags untuk proper z-order dan touch handling
+ * FloatingOverlayService - FIXED untuk allow background touch
+ * FIXED: Window flags yang tidak block background apps
  */
 public class FloatingOverlayService extends Service {
     
@@ -52,7 +52,7 @@ public class FloatingOverlayService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        Logger.d(TAG, "Enhanced FloatingOverlayService created");
+        Logger.d(TAG, "FloatingOverlayService created - Touch Fixed Version");
         
         instance = this;
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
@@ -95,7 +95,7 @@ public class FloatingOverlayService extends Service {
     
     @Override
     public void onDestroy() {
-        Logger.d(TAG, "Enhanced FloatingOverlayService destroyed");
+        Logger.d(TAG, "FloatingOverlayService destroyed");
         
         hideOverlay();
         instance = null;
@@ -109,43 +109,43 @@ public class FloatingOverlayService extends Service {
     }
     
     /**
-     * ENHANCED: Initialize overlay dengan optimal window flags
+     * FIXED: Initialize overlay dengan optimal flags untuk background touch
      */
     private void initializeOverlayView() {
         try {
-            // Create enhanced overlay view
+            // Create overlay view
             overlayView = new OverlayView(this);
             
-            // ENHANCED: Setup optimal window layout parameters
+            // FIXED: Setup window parameters dengan proper flags
             int layoutFlag = getOptimalWindowType();
             
             layoutParams = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 layoutFlag,
-                getEnhancedWindowFlags(), // FIXED: Enhanced flags
+                getBackgroundTouchFriendlyFlags(), // FIXED: New flags
                 PixelFormat.TRANSLUCENT
             );
             
-            // ENHANCED: Optimal positioning
+            // Optimal positioning
             layoutParams.gravity = Gravity.TOP | Gravity.START;
             layoutParams.x = currentX;
             layoutParams.y = currentY;
             
-            // ENHANCED: Additional properties for better behavior
-            layoutParams.windowAnimations = android.R.style.Animation_Dialog;
+            // FIXED: Additional properties untuk better behavior
+            layoutParams.windowAnimations = 0; // No animation interference
             layoutParams.alpha = 1.0f;
             layoutParams.dimAmount = 0f; // No background dimming
             
-            Logger.d(TAG, "Enhanced overlay view initialized with optimal flags");
+            Logger.d(TAG, "Overlay view initialized with background-touch-friendly flags");
             
         } catch (Exception e) {
-            Logger.e(TAG, "Failed to initialize enhanced overlay view", e);
+            Logger.e(TAG, "Failed to initialize overlay view", e);
         }
     }
     
     /**
-     * ENHANCED: Get optimal window type based on Android version
+     * Get optimal window type based on Android version
      */
     private int getOptimalWindowType() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -158,34 +158,34 @@ public class FloatingOverlayService extends Service {
     }
     
     /**
-     * ENHANCED: Window flags untuk always-on-top dan proper touch handling
+     * FIXED: Window flags yang allow background apps untuk di-touch
      */
-    private int getEnhancedWindowFlags() {
+    private int getBackgroundTouchFriendlyFlags() {
         int flags = 0;
         
-        // BASIC FLAGS
+        // CRITICAL: Allow background touch - apps lain bisa disentuh
+        flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;     // Don't steal focus
+        flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL;   // Allow background touch
+        
+        // LAYOUT FLAGS untuk positioning
         flags |= WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
         flags |= WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS;
-        flags |= WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED;
-        
-        // ALWAYS-ON-TOP FLAGS
-        flags |= WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED; // Show over lock screen
-        flags |= WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD; // Can dismiss keyguard
-        flags |= WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON; // Can turn screen on
-        
-        // TOUCH HANDLING FLAGS (CRITICAL FOR DRAG)
-        // NOTE: DON'T USE FLAG_NOT_FOCUSABLE for icon drag to work!
-        // We'll handle focus in OverlayView instead
         
         // PERFORMANCE FLAGS
-        flags |= WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON; // Prevent sleep during use
+        flags |= WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED;
         
-        Logger.d(TAG, "Enhanced window flags: " + Integer.toHexString(flags));
+        // REMOVED: Flags yang block background interaction
+        // REMOVED: FLAG_SHOW_WHEN_LOCKED (block background)
+        // REMOVED: FLAG_DISMISS_KEYGUARD (block background) 
+        // REMOVED: FLAG_TURN_SCREEN_ON (too aggressive)
+        // REMOVED: FLAG_KEEP_SCREEN_ON (unnecessary)
+        
+        Logger.d(TAG, "Background-touch-friendly flags: " + Integer.toHexString(flags));
         return flags;
     }
     
     /**
-     * ENHANCED: Show overlay dengan better error handling
+     * Show overlay dengan better error handling
      */
     public void showOverlay() {
         if (isOverlayVisible || overlayView == null) {
@@ -200,23 +200,23 @@ public class FloatingOverlayService extends Service {
         }
         
         try {
-            // ENHANCED: Add overlay dengan optimal parameters
+            // Add overlay dengan background-friendly parameters
             windowManager.addView(overlayView, layoutParams);
             isOverlayVisible = true;
             
-            Logger.i(TAG, "Enhanced overlay shown successfully at (" + currentX + "," + currentY + ")");
+            Logger.i(TAG, "Overlay shown successfully at (" + currentX + "," + currentY + ") - Background touch enabled");
             
             // Update notification
             updateNotification("Pool Assistant overlay active");
             
         } catch (Exception e) {
-            Logger.e(TAG, "Failed to show enhanced overlay", e);
+            Logger.e(TAG, "Failed to show overlay", e);
             isOverlayVisible = false;
         }
     }
     
     /**
-     * ENHANCED: Hide overlay dengan proper cleanup
+     * Hide overlay dengan proper cleanup
      */
     public void hideOverlay() {
         if (!isOverlayVisible || overlayView == null) {
@@ -232,13 +232,13 @@ public class FloatingOverlayService extends Service {
             windowManager.removeView(overlayView);
             isOverlayVisible = false;
             
-            Logger.i(TAG, "Enhanced overlay hidden successfully, position saved: (" + currentX + "," + currentY + ")");
+            Logger.i(TAG, "Overlay hidden successfully, position saved: (" + currentX + "," + currentY + ")");
             
             // Update notification
             updateNotification("Pool Assistant overlay hidden");
             
         } catch (Exception e) {
-            Logger.e(TAG, "Failed to hide enhanced overlay", e);
+            Logger.e(TAG, "Failed to hide overlay", e);
         }
     }
     
@@ -263,7 +263,7 @@ public class FloatingOverlayService extends Service {
                 "Pool Assistant Overlay",
                 NotificationManager.IMPORTANCE_LOW
             );
-            channel.setDescription("Enhanced floating overlay service for Pool Assistant");
+            channel.setDescription("Floating overlay service for Pool Assistant");
             channel.setShowBadge(false);
             
             NotificationManager manager = getSystemService(NotificationManager.class);
@@ -343,7 +343,7 @@ public class FloatingOverlayService extends Service {
     }
     
     /**
-     * ENHANCED: Update overlay position dengan bounds checking
+     * Update overlay position dengan bounds checking
      */
     public void updateOverlayPosition(int x, int y) {
         if (layoutParams != null && isOverlayVisible) {
@@ -365,14 +365,14 @@ public class FloatingOverlayService extends Service {
     }
     
     /**
-     * ENHANCED: Get current overlay X position
+     * Get current overlay X position
      */
     public int getCurrentX() {
         return layoutParams != null ? layoutParams.x : currentX;
     }
     
     /**
-     * ENHANCED: Get current overlay Y position  
+     * Get current overlay Y position  
      */
     public int getCurrentY() {
         return layoutParams != null ? layoutParams.y : currentY;
@@ -400,10 +400,10 @@ public class FloatingOverlayService extends Service {
     }
     
     /**
-     * ENHANCED: Graceful shutdown
+     * Graceful shutdown
      */
     public void shutdownService() {
-        Logger.i(TAG, "Shutting down Enhanced FloatingOverlayService gracefully...");
+        Logger.i(TAG, "Shutting down FloatingOverlayService gracefully...");
         
         // Hide overlay first
         hideOverlay();
@@ -422,29 +422,12 @@ public class FloatingOverlayService extends Service {
     }
     
     /**
-     * ENHANCED: Force overlay to front (if it gets buried)
-     */
-    public void bringToFront() {
-        if (isOverlayVisible && overlayView != null) {
-            try {
-                // Remove and re-add to bring to front
-                windowManager.removeView(overlayView);
-                windowManager.addView(overlayView, layoutParams);
-                Logger.d(TAG, "Overlay brought to front");
-            } catch (Exception e) {
-                Logger.e(TAG, "Failed to bring overlay to front", e);
-            }
-        }
-    }
-    
-    /**
-     * ENHANCED: Get enhanced service info
+     * Get service info untuk debugging
      */
     public String getServiceInfo() {
         return String.format(
-            "Enhanced Service - Visible: %s, Position: (%d,%d), Flags: %s", 
-            isOverlayVisible, getCurrentX(), getCurrentY(),
-            layoutParams != null ? Integer.toHexString(layoutParams.flags) : "null"
+            "Service - Visible: %s, Position: (%d,%d), Background Touch: ENABLED", 
+            isOverlayVisible, getCurrentX(), getCurrentY()
         );
     }
 }
