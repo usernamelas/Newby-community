@@ -114,6 +114,7 @@ public class OverlayView extends LinearLayout {
             addView(iconContainer);
             addView(fullContainer);
             addView(settingsContainer);
+            setBackgroundColor(Color.TRANSPARENT); // FIX #2: Ensure root container is transparent
             
             // Setup enhanced interactions
             setupEnhancedClickListeners();
@@ -140,13 +141,15 @@ public class OverlayView extends LinearLayout {
         LinearLayout container = new LinearLayout(getContext());
         
         // ENHANCED: 72dp size as requested
-        int iconSize = (int) (72 * getResources().getDisplayMetrics().density);
-        container.setLayoutParams(new LayoutParams(iconSize, iconSize));
+        iint iconSize = (int) (72 * getResources().getDisplayMetrics().density); // Keep size but ensure proper layout
+        LayoutParams iconContainerParams = new LayoutParams(iconSize, iconSize);
+        iconContainerParams.gravity = android.view.Gravity.CENTER; // FIX #3: Proper centering
+        container.setLayoutParams(iconContainerParams);
         container.setOrientation(LinearLayout.VERTICAL);
         container.setGravity(android.view.Gravity.CENTER);
         
         // ENHANCED: Clean appearance - no blue background
-        container.setBackgroundResource(android.R.drawable.btn_default); // Subtle system background
+        container.setBackground(null); // FIX #2: Remove white background
         container.setElevation(12f); // Higher elevation untuk always-on-top
         
         // ENHANCED: App icon button - draggable
@@ -156,7 +159,7 @@ public class OverlayView extends LinearLayout {
         iconButton.setLayoutParams(iconParams);
         
         // ENHANCED: Clean transparent background
-        iconButton.setBackground(null);
+        iconButton.setBackground(null); // Already correct, keep this
         iconButton.setElevation(4f);
         
         // Use app icon with fallback
@@ -188,8 +191,11 @@ public class OverlayView extends LinearLayout {
      */
     private ViewGroup createFullState() {
         LinearLayout container = new LinearLayout(getContext());
-        int fullWidth = (int) (320 * getResources().getDisplayMetrics().density);
-        container.setLayoutParams(new LayoutParams(fullWidth, LayoutParams.WRAP_CONTENT));
+        float density = getResources().getDisplayMetrics().density;
+        int fullWidth = (int) (320 * density);
+        int fullHeight = (int) (200 * density); // FIX #3: Set proper height instead of WRAP_CONTENT
+        LayoutParams fullParams = new LayoutParams(fullWidth, fullHeight);
+        container.setLayoutParams(fullParams);
         container.setOrientation(LinearLayout.VERTICAL);
         
         // Background with fallback
@@ -401,9 +407,11 @@ public class OverlayView extends LinearLayout {
      */
     private ViewGroup createSettingsState() {
         LinearLayout container = new LinearLayout(getContext());
-        int settingsWidth = (int) (280 * getResources().getDisplayMetrics().density);
-        container.setLayoutParams(new LayoutParams(settingsWidth, LayoutParams.WRAP_CONTENT));
-        container.setOrientation(LinearLayout.VERTICAL);
+        float density = getResources().getDisplayMetrics().density;
+        int settingsWidth = (int) (280 * density);
+        int settingsHeight = (int) (180 * density); // FIX #3: Set proper height
+        LayoutParams settingsParams = new LayoutParams(settingsWidth, settingsHeight);
+        container.setLayoutParams(settingsParams);
         
         try {
             container.setBackgroundResource(R.drawable.overlay_settings_background);
