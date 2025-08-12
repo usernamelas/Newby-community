@@ -22,8 +22,8 @@ import com.victory.poolassistant.R;
 import com.victory.poolassistant.core.Logger;
 
 /**
- * FloatingOverlayService - FIXED untuk allow background touch
- * FIXED: Window flags yang tidak block background apps
+ * Foreground service untuk floating overlay Pool Assistant
+ * Handles window management dan lifecycle overlay
  */
 public class FloatingOverlayService extends Service {
     
@@ -45,14 +45,10 @@ public class FloatingOverlayService extends Service {
     private boolean isOverlayVisible = false;
     private static FloatingOverlayService instance;
     
-    // Enhanced state tracking
-    private int currentX = 100;
-    private int currentY = 100;
-    
     @Override
     public void onCreate() {
         super.onCreate();
-        Logger.d(TAG, "FloatingOverlayService created - Touch Fixed Version");
+        Logger.d(TAG, "FloatingOverlayService created");
         
         instance = this;
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
@@ -109,35 +105,40 @@ public class FloatingOverlayService extends Service {
     }
     
     /**
-     * FIXED: Initialize overlay dengan optimal flags untuk background touch
+     * Initialize overlay view dan layout parameters
      */
     private void initializeOverlayView() {
         try {
             // Create overlay view
             overlayView = new OverlayView(this);
             
-            // FIXED: Setup window parameters dengan proper flags
-            int layoutFlag = getOptimalWindowType();
+            // Setup window layout parameters
+            int layoutFlag;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
+            } else {
+                layoutFlag = WindowManager.LayoutParams.TYPE_PHONE;
+            }
             
+            // FIX #1: FIXED TOUCH PASSTHROUGH - Allow background touch events
             layoutParams = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 layoutFlag,
-                getBackgroundTouchFriendlyFlags(), // FIXED: New flags
+                // CRITICAL FIX: Added FLAG_NOT_TOUCH_MODAL to allow background touches
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL |      // 🔥 KEY FIX: Allows background touch
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN |
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                 PixelFormat.TRANSLUCENT
             );
             
-            // Optimal positioning
+            // Position overlay
             layoutParams.gravity = Gravity.TOP | Gravity.START;
-            layoutParams.x = currentX;
-            layoutParams.y = currentY;
+            layoutParams.x = 100; // Initial X position
+            layoutParams.y = 100; // Initial Y position
             
-            // FIXED: Additional properties untuk better behavior
-            layoutParams.windowAnimations = 0; // No animation interference
-            layoutParams.alpha = 1.0f;
-            layoutParams.dimAmount = 0f; // No background dimming
-            
-            Logger.d(TAG, "Overlay view initialized with background-touch-friendly flags");
+            Logger.d(TAG, "Overlay view initialized successfully with touch passthrough");
             
         } catch (Exception e) {
             Logger.e(TAG, "Failed to initialize overlay view", e);
@@ -145,47 +146,7 @@ public class FloatingOverlayService extends Service {
     }
     
     /**
-     * Get optimal window type based on Android version
-     */
-    private int getOptimalWindowType() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            return WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            return WindowManager.LayoutParams.TYPE_PHONE;
-        } else {
-            return WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;
-        }
-    }
-    
-    /**
-     * FIXED: Window flags yang allow background apps untuk di-touch
-     */
-    private int getBackgroundTouchFriendlyFlags() {
-        int flags = 0;
-        
-        // CRITICAL: Allow background touch - apps lain bisa disentuh
-        flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;     // Don't steal focus
-        flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL;   // Allow background touch
-        
-        // LAYOUT FLAGS untuk positioning
-        flags |= WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
-        flags |= WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS;
-        
-        // PERFORMANCE FLAGS
-        flags |= WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED;
-        
-        // REMOVED: Flags yang block background interaction
-        // REMOVED: FLAG_SHOW_WHEN_LOCKED (block background)
-        // REMOVED: FLAG_DISMISS_KEYGUARD (block background) 
-        // REMOVED: FLAG_TURN_SCREEN_ON (too aggressive)
-        // REMOVED: FLAG_KEEP_SCREEN_ON (unnecessary)
-        
-        Logger.d(TAG, "Background-touch-friendly flags: " + Integer.toHexString(flags));
-        return flags;
-    }
-    
-    /**
-     * Show overlay dengan better error handling
+     * Show floating overlay
      */
     public void showOverlay() {
         if (isOverlayVisible || overlayView == null) {
@@ -196,18 +157,18 @@ public class FloatingOverlayService extends Service {
         // Check overlay permission
         if (!Settings.canDrawOverlays(this)) {
             Logger.e(TAG, "No overlay permission - cannot show overlay");
+            // TODO: Notify user about permission requirement
             return;
         }
         
         try {
-            // Add overlay dengan background-friendly parameters
             windowManager.addView(overlayView, layoutParams);
             isOverlayVisible = true;
             
-            Logger.i(TAG, "Overlay shown successfully at (" + currentX + "," + currentY + ") - Background touch enabled");
+            Logger.i(TAG, "Overlay shown successfully with background touch enabled");
             
             // Update notification
-            updateNotification("Pool Assistant overlay active");
+            updateNotification("Pool Assistant overlay active - Background touch enabled");
             
         } catch (Exception e) {
             Logger.e(TAG, "Failed to show overlay", e);
@@ -216,7 +177,7 @@ public class FloatingOverlayService extends Service {
     }
     
     /**
-     * Hide overlay dengan proper cleanup
+     * Hide floating overlay
      */
     public void hideOverlay() {
         if (!isOverlayVisible || overlayView == null) {
@@ -225,14 +186,10 @@ public class FloatingOverlayService extends Service {
         }
         
         try {
-            // Save current position before hiding
-            currentX = layoutParams.x;
-            currentY = layoutParams.y;
-            
             windowManager.removeView(overlayView);
             isOverlayVisible = false;
             
-            Logger.i(TAG, "Overlay hidden successfully, position saved: (" + currentX + "," + currentY + ")");
+            Logger.i(TAG, "Overlay hidden successfully");
             
             // Update notification
             updateNotification("Pool Assistant overlay hidden");
@@ -305,10 +262,10 @@ public class FloatingOverlayService extends Service {
         return new NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Pool Assistant")
             .setContentText(text)
-            .setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(R.drawable.ic_notification) // TODO: Create this icon
             .setContentIntent(pendingIntent)
             .addAction(
-                R.drawable.ic_visibility,
+                R.drawable.ic_visibility, // TODO: Create this icon
                 isOverlayVisible ? "Hide Overlay" : "Show Overlay",
                 togglePendingIntent
             )
@@ -343,91 +300,18 @@ public class FloatingOverlayService extends Service {
     }
     
     /**
-     * Update overlay position dengan bounds checking
+     * Update overlay position (called by OverlayView)
      */
     public void updateOverlayPosition(int x, int y) {
         if (layoutParams != null && isOverlayVisible) {
-            // Update internal tracking
-            currentX = x;
-            currentY = y;
-            
-            // Apply to layout params
-            layoutParams.x = currentX;
-            layoutParams.y = currentY;
+            layoutParams.x = x;
+            layoutParams.y = y;
             
             try {
                 windowManager.updateViewLayout(overlayView, layoutParams);
-                Logger.v(TAG, "Overlay position updated to (" + currentX + "," + currentY + ")");
             } catch (Exception e) {
                 Logger.e(TAG, "Failed to update overlay position", e);
             }
         }
-    }
-    
-    /**
-     * Get current overlay X position
-     */
-    public int getCurrentX() {
-        return layoutParams != null ? layoutParams.x : currentX;
-    }
-    
-    /**
-     * Get current overlay Y position  
-     */
-    public int getCurrentY() {
-        return layoutParams != null ? layoutParams.y : currentY;
-    }
-    
-    /**
-     * Get overlay view instance (for advanced control)
-     */
-    public OverlayView getOverlayView() {
-        return overlayView;
-    }
-    
-    /**
-     * Check if service is running
-     */
-    public static boolean isServiceRunning() {
-        return instance != null;
-    }
-    
-    /**
-     * Get window layout parameters (for debugging)
-     */
-    public WindowManager.LayoutParams getLayoutParams() {
-        return layoutParams;
-    }
-    
-    /**
-     * Graceful shutdown
-     */
-    public void shutdownService() {
-        Logger.i(TAG, "Shutting down FloatingOverlayService gracefully...");
-        
-        // Hide overlay first
-        hideOverlay();
-        
-        // Clean up overlay view
-        if (overlayView != null) {
-            overlayView.cleanup();
-            overlayView = null;
-        }
-        
-        // Stop foreground service
-        stopForeground(true);
-        
-        // Stop service
-        stopSelf();
-    }
-    
-    /**
-     * Get service info untuk debugging
-     */
-    public String getServiceInfo() {
-        return String.format(
-            "Service - Visible: %s, Position: (%d,%d), Background Touch: ENABLED", 
-            isOverlayVisible, getCurrentX(), getCurrentY()
-        );
     }
 }
